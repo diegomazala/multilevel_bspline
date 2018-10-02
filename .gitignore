@@ -1,3 +1,9 @@
+# binary folder
+build*/
+
+#vscode settings
+settings.json
+
 # Prerequisites
 *.d
 
