@@ -108,10 +108,10 @@ void create_3d_control_lattice(
 	{
 		const auto& uv = grid.point(*vi);
 
-		const size_t num_results = 1;
-		size_t ret_index;
+		const uint32_t num_results = 1;
+		uint32_t ret_index;
 		decimal_t out_dist_sqr;
-		nanoflann::KNNResultSet<decimal_t> resultSet(num_results);
+		nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
 		resultSet.init(&ret_index, &out_dist_sqr);
 
 		kdtree_index.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(10));
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
     tm_save_control_lattice.stop();
 
     
-#if 0
+#if 1
     timer tm_surf_compute;
     // surface::bspline_t<decimal_t> surf_x = {u_array.data(), v_array.data(), x.data(),
     //                                       mesh.n_vertices(), m, n};
@@ -220,11 +220,11 @@ int main(int argc, char *argv[])
     //
     // initialize phi matrix
     //
-    for (auto i = 0; i < m + 3; ++i)
+    for (uint32_t i = 0; i < m + 3; ++i)
     {
-        for (auto j = 0; j < n + 3; ++j)
+        for (uint32_t j = 0; j < n + 3; ++j)
         {
-            auto grid_ind = i * (m + 3) + j;
+			uint32_t grid_ind = i * (m + 3) + j;
             //surf_x.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[0];
             //surf_y.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[1];
             surf_z.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[2];
