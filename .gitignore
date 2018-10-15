@@ -36,3 +36,4 @@ settings.json
 *.exe
 *.out
 *.app
+/.vs
