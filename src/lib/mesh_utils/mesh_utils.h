@@ -6,11 +6,15 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
+#if _MSC_VER
 #pragma warning(push, 0) // supressing warnings for OpenMesh
+#endif
 #define _USE_MATH_DEFINES
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#if _MSC_VER
 #pragma warning(pop)
+#endif
 
 // Define my personal traits
 template<typename T>
@@ -156,7 +160,7 @@ static void normalize_mesh(TriMesh &mesh, const TriMesh::Point &center,
     }
 }
 
-static void normalize_mesh(TriMesh &mesh)
+void normalize_mesh(TriMesh &mesh)
 {
     auto [min_corner, max_corner] = mesh_bounding_box(mesh);
     auto scale = max_range_of_bounding_box(min_corner, max_corner);
@@ -164,7 +168,7 @@ static void normalize_mesh(TriMesh &mesh)
     normalize_mesh(mesh, center, scale);
 }
 
-static void create_grid_mesh(TriMesh &mesh, uint32_t rows, uint32_t cols,
+void create_grid_mesh(TriMesh &mesh, uint32_t rows, uint32_t cols,
 	TriMesh::Scalar width = 1.0f, TriMesh::Scalar height = 1.0f)
 {
     std::vector<TriMesh::VertexHandle> vhandle((rows + 1) * (cols + 1));

@@ -116,8 +116,8 @@ namespace surface
 			const decimal_t interval_normalization_factor_u = m * urange_inv;
 			const decimal_t interval_normalization_factor_v = n * vrange_inv;
 
-			const decimal_t cell_x = static_cast<decimal_t>(1) / (m + 3 - 1);
-			const decimal_t cell_y = static_cast<decimal_t>(1) / (n + 3 - 1);
+			//const decimal_t cell_x = static_cast<decimal_t>(1) / (m + 3 - 1);
+			//const decimal_t cell_y = static_cast<decimal_t>(1) / (n + 3 - 1);
 
 
 			for (size_t index = 0; index < point_count; ++index)

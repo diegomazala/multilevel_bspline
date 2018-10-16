@@ -1,9 +1,13 @@
 #pragma once
 #include <cmath>
 
-#pragma warning(push, 0) // supressing warnings
+#if _MSC_VER
+#pragma warning(push, 0) // supressing warnings for Eigen
+#endif
 #include <Eigen/Core>
+#if _MSC_VER
 #pragma warning(pop)
+#endif
 
 // namespace curve starts here
 namespace curve

@@ -62,7 +62,7 @@ struct PointCloudAdaptor
 template <typename decimal_t>
 void create_3d_control_lattice(
 							TriMesh &grid, int m, int n, 
-							int neighbours_count, int kdtree_count, int knn_search_checks,
+							int kdtree_count, int knn_search_checks,
 							TriMesh &mesh)
 {
 	constexpr int dimension = 2;
@@ -82,7 +82,7 @@ void create_3d_control_lattice(
 		samples.pts[uv_index].x = uv[0];
 		samples.pts[uv_index].y = uv[1];
 		samples.pts[uv_index].z = uv[2];
-		std::cout << std::fixed << "sample pts: " << samples.pts[uv_index].x << ' ' << samples.pts[uv_index].y << ' ' << samples.pts[uv_index].z << std::endl;
+		//std::cout << std::fixed << "sample pts: " << samples.pts[uv_index].x << ' ' << samples.pts[uv_index].y << ' ' << samples.pts[uv_index].z << std::endl;
 	}
 	std::cout << std::endl;
 	//
@@ -97,7 +97,7 @@ void create_3d_control_lattice(
 		dimension /* dim */
 	> kdtree_t;
 	//
-	kdtree_t   kdtree_index(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+	kdtree_t   kdtree_index(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
 	kdtree_index.buildIndex();
 	tm_kdtree_build_query.stop();
 	//
@@ -114,12 +114,13 @@ void create_3d_control_lattice(
 		nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
 		resultSet.init(&ret_index, &out_dist_sqr);
 
-		kdtree_index.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(10));
+		kdtree_index.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(knn_search_checks));
 
 		TriMesh::VertexHandle vi_mesh = mesh.vertex_handle(ret_index);
 		const auto& pt_mesh = mesh.point(vi_mesh);
+        
 
-		grid.set_point(vi, pt_mesh);
+		grid.set_point(*vi, pt_mesh);
 
 		//std::cout << ret_index
 		//	<< '\t' << uv
@@ -178,13 +179,10 @@ int main(int argc, char *argv[])
     //
     // build knn
     //
-    constexpr int dimension = 2;
-    const int neighbours_count = (argc > 3) ? atoi(argv[3]) : 16;
-    const int kdtree_count = (argc > 4) ? atoi(argv[4]) : 4;
-    const int knn_search_checks = (argc > 5) ? atoi(argv[5]) : 128;
-    const size_t num_input = mesh.n_vertices();
-    const size_t num_query = num_input;
- 
+    //constexpr int dimension = 2;
+    //const int neighbours_count = (argc > 3) ? atoi(argv[3]) : 16;
+    const int kdtree_count = (argc > 4) ? atoi(argv[3]) : 10;
+    const int knn_search_checks = (argc > 5) ? atoi(argv[4]) : 16;
 
 	//
 	// build control lattice grid
@@ -192,7 +190,7 @@ int main(int argc, char *argv[])
 	timer tm_build_control_lattice;
 	TriMesh grid;
 	create_3d_control_lattice<decimal_t>(grid, m + 3 - 1, n + 3 - 1, 
-		neighbours_count, kdtree_count, knn_search_checks, mesh);
+		kdtree_count, knn_search_checks, mesh);
 	tm_build_control_lattice.stop();
 
 
@@ -220,16 +218,16 @@ int main(int argc, char *argv[])
     //
     // initialize phi matrix
     //
-    for (uint32_t i = 0; i < m + 3; ++i)
-    {
-        for (uint32_t j = 0; j < n + 3; ++j)
-        {
-			uint32_t grid_ind = i * (m + 3) + j;
-            //surf_x.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[0];
-            //surf_y.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[1];
-            surf_z.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[2];
-        }
-    }
+    // for (uint32_t i = 0; i < m + 3; ++i)
+    // {
+    //     for (uint32_t j = 0; j < n + 3; ++j)
+    //     {
+	// 		uint32_t grid_ind = i * (m + 3) + j;
+    //         //surf_x.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[0];
+    //         //surf_y.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[1];
+    //         surf_z.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[2];
+    //     }
+    // }
     // surf_x.average_z = 0;
     // surf_y.average_z = 0;
     // surf_z.average_z = 0;
@@ -246,33 +244,34 @@ int main(int argc, char *argv[])
     // and interpolate (x,y)
     //
     timer tm_update_vertices;
-    //const decimal_t interval_normalization_factor_u = m * surf.urange_inv;
-    //const decimal_t interval_normalization_factor_v = n * surf.vrange_inv;
-    for (auto index = 0; index < mesh.n_vertices(); ++index)
+    //const decimal_t interval_normalization_factor_u = m * surf_z.urange_inv;
+    //const decimal_t interval_normalization_factor_v = n * surf_z.vrange_inv;
+    for (size_t index = 0; index < mesh.n_vertices(); ++index)
     {
         TriMesh::VertexHandle vi = mesh.vertex_handle(index);
         const auto uv = mesh.texcoord2D(vi);
         auto point = mesh.point(vi);
 
+#if 1
         //point[0] = surf_x(uv[0], uv[1]);
         //point[1] = surf_y(uv[0], uv[1]);
         point[2] = surf_z(uv[0], uv[1]);
 
-#if 0 // BEZIER INTERPOLATION
+#else  // BEZIER INTERPOLATION
 
         // Map to the half open domain Omega = [0,m) x [0,n)
         // The mapped u and v must be (strictly) less than m and n respectively
-        decimal_t u = (uv[0] - surf.umin) * interval_normalization_factor_u;
-        decimal_t v = (uv[1] - surf.vmin) * interval_normalization_factor_v;
+        decimal_t u = (uv[0] - surf_z.umin) * interval_normalization_factor_u;
+        decimal_t v = (uv[1] - surf_z.vmin) * interval_normalization_factor_v;
         //
         // compute 4x4 neighborhood position
         //auto [i, j, s, t] = surf.compute_ijst(uv[0], uv[1]);
-        auto [i, j, s, t] = surf.compute_ijst(u, v);
+        auto [i, j, s, t] = surf_z.compute_ijst(u, v);
         //
         // interpolate (x,y)
         //
         //std::cout << std::fixed << '[' << i << ',' << j << "] [" << index << "]  v: [" << point << "] uv [" << uv << ']' << std::endl;
-        for (auto pi = 0; pi < 2; ++pi)
+        for (auto pi = 0; pi < 3; ++pi)
         {
             decimal_t p[4][4];
             for (auto k = 0; k < 4; ++k)
