@@ -28,7 +28,7 @@ struct PointCloudAdaptor
 	const Derived &obj; //!< A const ref to the data set origin
 
 	/// The constructor that sets the data set source
-	PointCloudAdaptor(const Derived &obj_) : obj(obj_) { }
+	explicit PointCloudAdaptor(const Derived &obj_) : obj(obj_) { }
 
 	/// CRTP helper method
 	inline const Derived& derived() const { return obj; }
