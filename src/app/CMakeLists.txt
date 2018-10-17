@@ -96,10 +96,10 @@ if (OpenMesh_FOUND AND Eigen3_FOUND)
 
     ###########################################################################
     #
-    # bspline_mesh_surfxyz_app
+    # bspline_mesh_xyz_app
     #
-    project(bspline_mesh_surfxyz_app VERSION 0.1 LANGUAGES CXX)
-    add_executable(${PROJECT_NAME} bspline_mesh_surfxyz_app.cpp)
+    project(bspline_mesh_xyz_app VERSION 0.1 LANGUAGES CXX)
+    add_executable(${PROJECT_NAME} bspline_mesh_xyz_app.cpp)
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
     target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
 	set (LINK_LIBS ${OPENMESH_LIBRARIES} bspline_surface bezier common mesh_utils nanoflann)
@@ -108,4 +108,5 @@ if (OpenMesh_FOUND AND Eigen3_FOUND)
     else()
         target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} stdc++fs)
     endif()
+    
 endif()

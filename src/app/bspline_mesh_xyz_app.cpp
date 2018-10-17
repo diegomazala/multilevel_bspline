@@ -1,4 +1,3 @@
-#include <bezier.h>
 #include <bspline_surface.h>
 #include <fstream>
 #include <iostream>
@@ -22,7 +21,7 @@ int main(int argc, char *argv[])
     const uint32_t m = atoi(argv[2]);
     const uint32_t n = m;
     const std::string filename_out = filename_append_before_extension(
-        filename_append_before_extension(filename_in, argv[2]), "bspbezier");
+        filename_append_before_extension(filename_in, argv[2]), "bspxyz");
 
     TriMesh mesh;
     timer tm_load_mesh;
@@ -46,7 +45,7 @@ int main(int argc, char *argv[])
     //
     // build knn
     //
-    // constexpr int dimension = 2;
+     constexpr int dimension = 3;
     // const int neighbours_count = (argc > 3) ? atoi(argv[3]) : 16;
     const int kdtree_count = (argc > 4) ? atoi(argv[3]) : 10;
     const int knn_search_checks = (argc > 5) ? atoi(argv[4]) : 16;
@@ -88,6 +87,24 @@ int main(int argc, char *argv[])
     }
     tm_surf_compute.stop();
 
+#if 1
+    nanoflann::PointCloud<decimal_t> samples;
+    samples.pts.resize(grid.n_vertices());
+    size_t pt_index = 0;
+    for (auto vi = grid.vertices_begin(); vi != grid.vertices_end(); ++vi, ++pt_index)
+    {
+        const auto &pt = grid.point(*vi);
+        samples.pts[pt_index].x = pt[0];
+        samples.pts[pt_index].y = pt[1];
+        samples.pts[pt_index].z = pt[2];
+    }
+    const nanoflann::pointcloud_adaptor_t<decimal_t> pc2kd(samples); // The adaptor
+    nanoflann::kdtree_t<decimal_t, dimension> kdtree_grid(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
+    kdtree_grid.buildIndex();
+#else
+    std::shared_ptr<nanoflann::kdtree_t<decimal_t, dimension>> kdtree_grid_ptr = create_kdtree_from_mesh<decimal_t, dimension>(grid, kdtree_count);
+#endif
+
     //
     // For each vertex, compute the surface value at uv
     // and interpolate (x,y)
@@ -101,33 +118,39 @@ int main(int argc, char *argv[])
     {
         TriMesh::VertexHandle vi = mesh.vertex_handle(index);
         const auto uv = mesh.texcoord2D(vi);
-        auto point = mesh.point(vi);
+        auto point_mesh = mesh.point(vi);
+        auto point_out = point_mesh;
 
-        //
-        // interpolate (x,y) using bezier
-        //
-        for (auto pi = 0; pi < 3; ++pi)
+        for (auto p = 0; p < 3; ++p)
         {
             // Map to the half open domain Omega = [0,m) x [0,n)
             // The mapped u and v must be (strictly) less than m and n respectively
-            const decimal_t u = (uv[0] - surf[pi].umin) * norm_factor_u[pi];
-            const decimal_t v = (uv[1] - surf[pi].vmin) * norm_factor_v[pi];
-            //
-            // compute 4x4 neighborhood position
-            const auto[i, j, s, t] = surf[pi].compute_ijst(u, v);
+            const decimal_t u = (uv[0] - surf[p].umin) * norm_factor_u[p];
+            const decimal_t v = (uv[1] - surf[p].vmin) * norm_factor_v[p];
 
-            decimal_t p[4][4];
-            for (auto k = 0; k < 4; ++k)
+            auto i = static_cast<int64_t>(std::floor(u) - 1);
+            auto j = static_cast<int64_t>(std::floor(v) - 1);
+
+            if (i > 0 && j > 0 && i < m && j < n)
             {
-                for (auto l = 0; l < 4; ++l)
-                {
-                    const auto grid_ind = (j + l) * (m + 3) + (i + k);
-                    p[k][l] = grid.point(grid.vertex_handle(grid_ind))[pi];
-                }
+                point_out[p] = surf[p](uv[0], uv[1]);
             }
-            point[pi] = surface::bezier::cubic<decimal_t>(uv[0], uv[1], p);
+            else
+            {
+                //
+                // find closest control point
+                //
+                const uint32_t num_results = 1;
+                uint32_t ret_index;
+                decimal_t out_dist_sqr;
+                nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
+                resultSet.init(&ret_index, &out_dist_sqr);
+                kdtree_grid.findNeighbors(resultSet, &point_mesh[0], nanoflann::SearchParams(knn_search_checks));
+                point_out[p] = grid.point(grid.vertex_handle(ret_index))[p];
+            }
         }
-        mesh.set_point(vi, point);
+
+        mesh.set_point(vi, point_out);
     }
     tm_update_vertices.stop();
 

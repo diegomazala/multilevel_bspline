@@ -1,80 +1,9 @@
 #include <bspline_surface.h>
-#include <mesh_utils.h>
-#include <timer.h>
-#include <nanoflann_pointcloud.hpp>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include "bspline_mesh.h"
 
-
-
-template <typename decimal_t>
-void create_3d_control_lattice(
-							TriMesh &grid, int m, int n, 
-							int kdtree_count, int knn_search_checks,
-							TriMesh &mesh)
-{
-	constexpr int dimension = 2;
-
-	create_grid_mesh(grid, m, n);
-
-	//
-	// Collect uv data
-	//
-	timer tm_kdtree_build_query;
-	nanoflann::PointCloud<decimal_t> samples;
-	samples.pts.resize(mesh.n_vertices());
-	size_t uv_index = 0;
-	for (auto vi = mesh.vertices_begin(); vi != mesh.vertices_end(); ++vi, ++uv_index)
-	{
-		const auto& uv = mesh.point(*vi);
-		samples.pts[uv_index].x = uv[0];
-		samples.pts[uv_index].y = uv[1];
-		samples.pts[uv_index].z = uv[2];
-		//std::cout << std::fixed << "sample pts: " << samples.pts[uv_index].x << ' ' << samples.pts[uv_index].y << ' ' << samples.pts[uv_index].z << std::endl;
-	}
-	std::cout << std::endl;
-	
-    //
-	// Construct a kd-tree index
-	const nanoflann::pointcloud_adaptor_t<decimal_t>  pc2kd(samples); // The adaptor
-	//
-	// construct a kd-tree index:
-	//
-	nanoflann::kdtree_t<decimal_t, dimension> kdtree_index(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
-	kdtree_index.buildIndex();
-	tm_kdtree_build_query.stop();
-	//
-	// build uv query array
-	//
-	timer tm_kdtree_search;
-	for (auto vi = grid.vertices_begin(); vi != grid.vertices_end(); ++vi)
-	{
-		const auto& uv = grid.point(*vi);
-
-		const uint32_t num_results = 1;
-		uint32_t ret_index;
-		decimal_t out_dist_sqr;
-		nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
-		resultSet.init(&ret_index, &out_dist_sqr);
-
-		kdtree_index.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(knn_search_checks));
-
-		TriMesh::VertexHandle vi_mesh = mesh.vertex_handle(ret_index);
-		const auto& pt_mesh = mesh.point(vi_mesh);
-
-		grid.set_point(*vi, pt_mesh);
-	}
-	tm_kdtree_search.stop();
-
-	
-
-	std::cout
-		<< std::fixed << "[Times in seconds]  \n"
-		<< "KdTree Query     : " << tm_kdtree_build_query.diff_sec() << '\n'
-		<< "KdTree Search    : " << tm_kdtree_search.diff_sec() << '\n';
-
-}
 
 int main(int argc, char *argv[])
 {
@@ -149,26 +78,11 @@ int main(int argc, char *argv[])
     timer tm_surf_compute;
     surface::bspline_t<decimal_t> surf_z = {u_array.data(), v_array.data(), z.data(),
                                           mesh.n_vertices(), m, n};
-    //
-    // initialize phi matrix
-    // Also, it's needed to change the surf.compute function
-    // to accumulate the phi values
-    //
-#if 0      
-    for (uint32_t i = 0; i < m + 3; ++i)
-    {
-        for (uint32_t j = 0; j < n + 3; ++j)
-        {
-			uint32_t grid_ind = i * (m + 3) + j;
-            surf_z.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[2];
-        }
-    }
-#endif    
 
     // surf_z.average_z = 0;
     surf_z.compute();
     tm_surf_compute.stop();
-    std::cout << "Error: " << surf_z.compute_error() << std::endl;
+    std::cout << "Error            : " << surf_z.compute_error() << std::endl;
 
     //
     // For each vertex, compute the surface value at uv
@@ -185,6 +99,9 @@ int main(int argc, char *argv[])
     }
     tm_update_vertices.stop();
 
+    //
+    // Save output mesh
+    //
     timer tm_save_mesh;
     if (!save_mesh(mesh, filename_out))
     {
@@ -193,6 +110,9 @@ int main(int argc, char *argv[])
     }
     tm_save_mesh.stop();
 
+    //
+    // Print time info
+    //
     std::cout
         << std::fixed << "[Times in seconds]  \n"
         << "Loading Mesh     : " << tm_load_mesh.diff_sec() << '\n'
