@@ -2,7 +2,7 @@
 build*/
 
 #vscode settings
-settings.json
+launch.json
 
 # Prerequisites
 *.d
