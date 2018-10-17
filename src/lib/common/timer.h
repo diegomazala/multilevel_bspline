@@ -28,6 +28,16 @@ public:
 
 	float diff_msec() const
 	{
+		return std::chrono::duration<float, std::milli>(std::chrono::duration_cast<std::chrono::nanoseconds>(stopTime - startTime)).count();
+	}
+
+    float diff_sec_now() const
+	{
+		return std::chrono::duration<float>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - startTime)).count();
+	}
+
+	float diff_msec_now() const
+	{
 		return std::chrono::duration<float, std::milli>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - startTime)).count();
 	}
 

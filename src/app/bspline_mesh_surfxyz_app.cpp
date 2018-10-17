@@ -62,7 +62,7 @@ void create_3d_control_lattice(
 
 		TriMesh::VertexHandle vi_mesh = mesh.vertex_handle(ret_index);
 		const auto& pt_mesh = mesh.point(vi_mesh);
-
+        
 		grid.set_point(*vi, pt_mesh);
 	}
 	tm_kdtree_search.stop();
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     const uint32_t m = atoi(argv[2]);
     const uint32_t n = m;
     const std::string filename_out = filename_append_before_extension(
-        filename_append_before_extension(filename_in, argv[2]), "bsp");
+        filename_append_before_extension(filename_in, argv[2]), "bspxyz");
 
     TriMesh mesh;
     timer tm_load_mesh;
@@ -147,8 +147,14 @@ int main(int argc, char *argv[])
     
 
     timer tm_surf_compute;
-    surface::bspline_t<decimal_t> surf_z = {u_array.data(), v_array.data(), z.data(),
-                                          mesh.n_vertices(), m, n};
+    std::array<surface::bspline_t<decimal_t>, 3> surf
+    {{
+        {u_array.data(), v_array.data(), x.data(), mesh.n_vertices(), m, n},
+        {u_array.data(), v_array.data(), y.data(), mesh.n_vertices(), m, n},
+        {u_array.data(), v_array.data(), z.data(), mesh.n_vertices(), m, n}
+    }};
+
+
     //
     // initialize phi matrix
     // Also, it's needed to change the surf.compute function
@@ -160,15 +166,22 @@ int main(int argc, char *argv[])
         for (uint32_t j = 0; j < n + 3; ++j)
         {
 			uint32_t grid_ind = i * (m + 3) + j;
+            //surf_x.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[0];
+            //surf_y.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[1];
             surf_z.phi[i][j] = grid.point(grid.vertex_handle(grid_ind))[2];
         }
     }
 #endif    
-
-    // surf_z.average_z = 0;
-    surf_z.compute();
+    
+    for (auto& s : surf)
+    {
+        s.compute();
+        
+        // compute_error() is just for debug purposes
+        std::cout << "Error: " << s.compute_error() << std::endl;
+    }
     tm_surf_compute.stop();
-    std::cout << "Error: " << surf_z.compute_error() << std::endl;
+
 
     //
     // For each vertex, compute the surface value at uv
@@ -180,7 +193,10 @@ int main(int argc, char *argv[])
         TriMesh::VertexHandle vi = mesh.vertex_handle(index);
         const auto uv = mesh.texcoord2D(vi);
         auto point = mesh.point(vi);
-        point[2] = surf_z(uv[0], uv[1]);
+
+        for (auto i = 0; i<3; ++i)
+            point[i] = surf[i](uv[0], uv[1]);
+
         mesh.set_point(vi, point);
     }
     tm_update_vertices.stop();
@@ -192,6 +208,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     tm_save_mesh.stop();
+
+   
 
     std::cout
         << std::fixed << "[Times in seconds]  \n"

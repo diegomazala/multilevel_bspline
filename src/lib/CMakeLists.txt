@@ -47,7 +47,9 @@ set(NANOFLANN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nanoflann)
 set(LIB_NAME nanoflann)
 add_library(${LIB_NAME} INTERFACE)
 target_include_directories(${LIB_NAME} INTERFACE ${NANOFLANN_INCLUDE_DIR})
-target_sources(${LIB_NAME} INTERFACE ${NANOFLANN_INCLUDE_DIR}/nanoflann.hpp)
+target_sources(${LIB_NAME} INTERFACE 
+    ${NANOFLANN_INCLUDE_DIR}/nanoflann.hpp 
+    ${NANOFLANN_INCLUDE_DIR}/nanoflann_pointcloud.hpp)
 
 
 
