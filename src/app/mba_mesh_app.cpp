@@ -1,5 +1,6 @@
 #include "bspline_mesh.h"
 #include <bspline_surface.h>
+#include <mba_surface.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -14,16 +15,17 @@ int main(int argc, char *argv[])
 
     if (argc < 3)
     {
-        std::cout << "Usage: app <mesh_file> < m_n >\n"
-                  << "Usage: app ../data/face.obj 3 \n";
+        std::cout << "Usage: app <mesh_file> < m_n > < h >\n"
+                  << "Usage: app ../data/face.obj 3 3 \n";
         return EXIT_FAILURE;
     }
 
     const std::string filename_in = argv[1];
     const uint32_t m = atoi(argv[2]);
     const uint32_t n = m;
+    const uint32_t h = atoi(argv[3]);
     const std::string filename_out = filename_append_before_extension(
-        filename_append_before_extension(filename_in, argv[2]), "bspxyz_[mesh_xyz]");
+        filename_append_before_extension(filename_in, argv[2]), "mba");
 
     TriMesh mesh_source;
     timer tm_load_mesh;
@@ -38,7 +40,6 @@ int main(int argc, char *argv[])
     // build knn
     //
     constexpr int dimension = 3;
-    // const int neighbours_count = (argc > 3) ? atoi(argv[3]) : 16;
     const int kdtree_count = (argc > 4) ? atoi(argv[3]) : 10;
     const int knn_search_checks = (argc > 5) ? atoi(argv[4]) : 16;
 
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
     timer tm_save_control_lattice;
     {
         const std::string filename_pts = filename_append_before_extension(
-            filename_append_before_extension(filename_in, argv[2]), "pts_[mesh_xyz]");
+            filename_append_before_extension(filename_in, argv[2]), "pts");
         if (!save_points_obj(grid, filename_pts))
         {
             std::cout << "Could not save control_lattice mesh " << filename_pts << std::endl;
@@ -106,10 +107,11 @@ int main(int argc, char *argv[])
     // construct the surface function
     //
     timer tm_surf_compute;
-    std::array<surface::bspline_t<decimal_t>, 3> surf{
-        {{u_array.data(), v_array.data(), x.data(), mesh.n_vertices(), m, n},
-         {u_array.data(), v_array.data(), y.data(), mesh.n_vertices(), m, n},
-         {u_array.data(), v_array.data(), z.data(), mesh.n_vertices(), m, n}}};
+    //std::array<surface::bspline_t<decimal_t>, 3> surf{
+    std::array<surface::multilevel_bspline_t<decimal_t>, 3> surf{ 
+        {{u_array.data(), v_array.data(), x.data(), mesh.n_vertices(), m, n, h},
+         {u_array.data(), v_array.data(), y.data(), mesh.n_vertices(), m, n, h},
+         {u_array.data(), v_array.data(), z.data(), mesh.n_vertices(), m, n, h}}};
 
     //
     // compute the surface function
@@ -117,8 +119,6 @@ int main(int argc, char *argv[])
     for (auto &s : surf)
     {
         s.compute();
-        // compute_error() is just for debug purposes
-        std::cout << std::fixed << "Error            : " << s.compute_error() << std::endl;
     }
     tm_surf_compute.stop();
 

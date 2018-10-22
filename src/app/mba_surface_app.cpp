@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
     if (argc < 3)
 	{
 		std::cout 
-			<< "Usage: app <mesh_file> < m_n > < h > \n"
+			<< "Usage: app < m_n > < h > \n"
 			<< "Usage: app 16 3 \n";
 		return EXIT_FAILURE;
 	}

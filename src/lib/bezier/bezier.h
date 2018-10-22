@@ -78,5 +78,43 @@ decimal_t cubic(decimal_t u, decimal_t v, decimal_t p[4][4])
     return U * P * V;
 }
 } // namespace bezier
+
+
+
+// namespace bspline starts here
+namespace bspline
+{
+template <typename decimal_t>
+decimal_t cubic(decimal_t u, decimal_t v, decimal_t p[4][4])
+{
+    Eigen::Matrix<decimal_t, 1, 4> U;
+    Eigen::Matrix<decimal_t, 4, 1> V;
+    Eigen::Matrix<decimal_t, 4, 4> P;
+
+    U << std::pow((1 - u), 3) / 6,
+        (3 * std::pow(u, 3) - 6 * std::pow(u, 2) + 4) / 6,
+        (-3 * std::pow(u, 3) + 3 * std::pow(u, 2) + 3 * u + 1) / 6,
+        std::pow(u, 3) / 6;
+
+    V << std::pow((1 - v), 3) / 6,
+        (3 * std::pow(v, 3) - 6 * std::pow(v, 2) + 4) / 6,
+        (-3 * std::pow(v, 3) + 3 * std::pow(v, 2) + 3 * v + 1) / 6,
+        std::pow(v, 3) / 6;
+
+    for (auto i = 0; i < 4; ++i)
+    {
+        for (auto j = 0; j < 4; ++j)
+        {
+            P(i, j) = p[i][j];
+        }
+    }
+
+    return U * P * V;
+}
+} // namespace bspline
+
+
 } // namespace surface
+
+
 

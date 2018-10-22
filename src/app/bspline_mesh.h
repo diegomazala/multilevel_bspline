@@ -1,5 +1,7 @@
 #pragma once
 
+#define USE_GRID_CLOSEST_Z_ONLY 0
+
 #include <mesh_utils.h>
 #include <nanoflann_pointcloud.hpp>
 #include <timer.h>
@@ -65,11 +67,39 @@ template <typename decimal_t>
 void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, int knn_search_checks,
                                TriMesh &mesh)
 {
-    constexpr int dimension = 3;
+    // if set to 3, it will present wrong z coords for the neighbors
+    // I don't know the reason. I have to check
+    constexpr int dimension = 2;
 
     create_grid_mesh(grid, m, n);
 
+#if 0
     auto kdtree_ptr = create_kdtree_from_mesh<decimal_t, dimension>(mesh, kdtree_count);
+#else
+    //
+    // Collect data
+    //
+    nanoflann::PointCloud<decimal_t> samples;
+    samples.pts.resize(mesh.n_vertices());
+    size_t pt_index = 0;
+    for (auto vi = mesh.vertices_begin(); vi != mesh.vertices_end(); ++vi, ++pt_index)
+    {
+        const auto &pt = mesh.point(*vi);
+        samples.pts[pt_index].x = pt[0];
+        samples.pts[pt_index].y = pt[1];
+        samples.pts[pt_index].z = pt[2];
+    }
+
+    //
+    // Construct a kd-tree index
+    const nanoflann::pointcloud_adaptor_t<decimal_t> pc2kd(samples); // The adaptor
+    //
+    // construct a kd-tree index:
+    //
+    nanoflann::kdtree_t<decimal_t, dimension> kdtree(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
+    kdtree.buildIndex();
+#endif
+
 
     //
     // build uv query array
@@ -77,9 +107,25 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     timer tm_kdtree_search;
     for (auto vi = grid.vertices_begin(); vi != grid.vertices_end(); ++vi)
     {
-        const auto &pt = grid.point(*vi);
+        auto pt = grid.point(*vi);
+#if 0        
         const auto &pt_mesh = find_closest_neighbor(*kdtree_ptr, pt, mesh, knn_search_checks);
+#else
+        const uint32_t num_results = 1;
+        uint32_t ret_index;
+        decimal_t out_dist_sqr;
+        nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
+        resultSet.init(&ret_index, &out_dist_sqr);
+        kdtree.findNeighbors(resultSet, &pt[0], nanoflann::SearchParams(knn_search_checks));
+        const auto &pt_mesh = mesh.point(mesh.vertex_handle(ret_index));
+#endif        
+
+#if USE_GRID_CLOSEST_Z_ONLY   // apply only z coord
+        pt[2] = pt_mesh[2];
+        grid.set_point(*vi, pt);
+#else
         grid.set_point(*vi, pt_mesh);
+#endif        
     }
     tm_kdtree_search.stop();
 }

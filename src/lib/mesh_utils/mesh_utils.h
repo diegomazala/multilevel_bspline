@@ -261,13 +261,13 @@ void mesh_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<sca
 
 
 template <typename scalar_t>
-void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<scalar_t>& y, std::vector<scalar_t>& z)
+void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& u, std::vector<scalar_t>& v, std::vector<scalar_t>& z)
 {
-    if (x.size() != mesh.n_vertices())
-        x.resize(mesh.n_vertices());
+    if (u.size() != mesh.n_vertices())
+        u.resize(mesh.n_vertices());
 
-    if (y.size() != mesh.n_vertices())
-        y.resize(mesh.n_vertices());
+    if (v.size() != mesh.n_vertices())
+        v.resize(mesh.n_vertices());
 
     if (z.size() != mesh.n_vertices())
         z.resize(mesh.n_vertices());
@@ -277,8 +277,8 @@ void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<
 	{
         const auto& uv = mesh.texcoord2D(*vi);
 		const auto& point = mesh.point(*vi);
-        x[i] = uv[0];
-        y[i] = uv[1];
+        u[i] = uv[0];
+        v[i] = uv[1];
         z[i] = point[2];
 	}
 }
@@ -307,8 +307,8 @@ void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<
 	{
         const auto& _uv = mesh.texcoord2D(*vi);
 		const auto& _point = mesh.point(*vi);
-        x[i] = _uv[0];
-        y[i] = _uv[1];
+        x[i] = _point[0];
+        y[i] = _point[1];
         z[i] = _point[2];
         u[i] = _uv[0];
         v[i] = _uv[1];
