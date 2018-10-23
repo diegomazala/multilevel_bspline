@@ -93,13 +93,9 @@ template <typename decimal_t> class bspline_t
     {
         matrix_t delta = {(m + 3), std::vector<decimal_t>(n + 3, 0)};
         matrix_t omega = {(m + 3), std::vector<decimal_t>(n + 3, 0)};
-        // this->phi = {(m + 3), std::vector<decimal_t>(n + 3, 0)};
 
         const decimal_t interval_normalization_factor_u = m * urange_inv;
         const decimal_t interval_normalization_factor_v = n * vrange_inv;
-
-        // const decimal_t cell_x = static_cast<decimal_t>(1) / (m + 3 - 1);
-        // const decimal_t cell_y = static_cast<decimal_t>(1) / (n + 3 - 1);
 
         for (size_t index = 0; index < point_count; ++index)
         {
@@ -213,11 +209,11 @@ template <typename decimal_t> class bspline_t
 
     const decimal_t *get_delta_z() const { return delta_z.data(); }
 
-    const decimal_t get_phi(size_t i, size_t j) const { return this->phi[i][j]; }
+    const auto &phi_matrix(uint32_t i, uint32_t j) const { return this->phi[i][j]; }
+    auto &phi_matrix(uint32_t i, uint32_t j) { return this->phi[i][j]; }
 
-    const auto &get_phi_matrix() const { return this->phi; }
 
-    // protected:
+//protected:
 
     //
     // Evaluate the function at (u, v)
@@ -329,6 +325,10 @@ template <typename decimal_t> class bspline_t
         // return std::make_tuple(w, sum_w_ab2);
     }
 
+    // 
+    // initialize variables
+    // compute range of the data
+    //
     void init()
     {
         umin = std::numeric_limits<decimal_t>::max();

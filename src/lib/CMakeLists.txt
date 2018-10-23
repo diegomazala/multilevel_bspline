@@ -11,6 +11,7 @@ target_include_directories(${LIB_NAME} INTERFACE ${BSPLINE_SURFACE_INCLUDE_DIR})
 target_sources(${LIB_NAME} INTERFACE
         ${BSPLINE_SURFACE_INCLUDE_DIR}/bspline_surface.h
         ${BSPLINE_SURFACE_INCLUDE_DIR}/mba_surface.h
+        ${BSPLINE_SURFACE_INCLUDE_DIR}/matrix.h
 )
 
 ###########################################################################
