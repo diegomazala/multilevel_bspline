@@ -72,7 +72,7 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     constexpr int dimension = 2;
 
     create_grid_mesh(grid, m, n);
-
+    
 #if 0
     auto kdtree_ptr = create_kdtree_from_mesh<decimal_t, dimension>(mesh, kdtree_count);
 #else
@@ -84,10 +84,17 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     size_t pt_index = 0;
     for (auto vi = mesh.vertices_begin(); vi != mesh.vertices_end(); ++vi, ++pt_index)
     {
+#if 1
+        const auto &uv = mesh.texcoord2D(*vi);
+        samples.pts[pt_index].x = uv[0];
+        samples.pts[pt_index].y = uv[1];
+        samples.pts[pt_index].z = 0;
+#else        
         const auto &pt = mesh.point(*vi);
         samples.pts[pt_index].x = pt[0];
         samples.pts[pt_index].y = pt[1];
         samples.pts[pt_index].z = pt[2];
+#endif        
     }
 
     //
@@ -107,10 +114,26 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     timer tm_kdtree_search;
     for (auto vi = grid.vertices_begin(); vi != grid.vertices_end(); ++vi)
     {
-        auto pt = grid.point(*vi);
-#if 0        
-        const auto &pt_mesh = find_closest_neighbor(*kdtree_ptr, pt, mesh, knn_search_checks);
+#if 1
+        //auto pt = grid.point(*vi);
+        auto uv = grid.texcoord2D(*vi);
+        const uint32_t num_results = 1;
+        uint32_t ret_index;
+        decimal_t out_dist_sqr;
+        nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
+        resultSet.init(&ret_index, &out_dist_sqr);
+        kdtree.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(knn_search_checks));
+        const auto &pt_mesh = mesh.point(mesh.vertex_handle(ret_index));
+#if USE_GRID_CLOSEST_Z_ONLY   // apply only z coord
+        pt[2] = pt_mesh[2];
+        grid.set_point(*vi, pt);
 #else
+        grid.set_point(*vi, pt_mesh);
+#endif        
+
+#else
+
+        auto pt = grid.point(*vi);
         const uint32_t num_results = 1;
         uint32_t ret_index;
         decimal_t out_dist_sqr;
@@ -118,7 +141,6 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
         resultSet.init(&ret_index, &out_dist_sqr);
         kdtree.findNeighbors(resultSet, &pt[0], nanoflann::SearchParams(knn_search_checks));
         const auto &pt_mesh = mesh.point(mesh.vertex_handle(ret_index));
-#endif        
 
 #if USE_GRID_CLOSEST_Z_ONLY   // apply only z coord
         pt[2] = pt_mesh[2];
@@ -126,6 +148,9 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
 #else
         grid.set_point(*vi, pt_mesh);
 #endif        
+
+#endif
+
     }
     tm_kdtree_search.stop();
 }

@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     //
     // build knn
     //
-    constexpr int dimension = 3;
+    //constexpr int dimension = 3;
     // const int neighbours_count = (argc > 3) ? atoi(argv[3]) : 16;
     const int kdtree_count = (argc > 4) ? atoi(argv[3]) : 10;
     const int knn_search_checks = (argc > 5) ? atoi(argv[4]) : 16;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     timer tm_save_control_lattice;
     {
         const std::string filename_pts = filename_append_before_extension(
-            filename_append_before_extension(filename_in, argv[2]), "pts_[mesh_xyz]");
+            filename_append_before_extension(filename_in, argv[2]), "pts");
         if (!save_points_obj(grid, filename_pts))
         {
             std::cout << "Could not save control_lattice mesh " << filename_pts << std::endl;
@@ -65,7 +65,9 @@ int main(int argc, char *argv[])
         }
     }
     tm_save_control_lattice.stop();
+    //exit(0);
 
+#if 0
     //
     // Compute kdtree of the grid
     //
@@ -83,12 +85,14 @@ int main(int argc, char *argv[])
     nanoflann::kdtree_t<decimal_t, dimension> kdtree_grid(
         dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
     kdtree_grid.buildIndex();
+#endif
 
 #if COMPUTE_SURF_GRID
     TriMesh &mesh = grid;
 #else
     TriMesh &mesh = mesh_source;
 #endif
+
 
     //
     // build data arrays
@@ -114,13 +118,49 @@ int main(int argc, char *argv[])
     //
     // compute the surface function
     //
+#if 0
     for (auto &s : surf)
     {
+        s.average_z = 0;
         s.compute();
         // compute_error() is just for debug purposes
         std::cout << std::fixed << "Error            : " << s.compute_error() << std::endl;
     }
     tm_surf_compute.stop();
+#else
+
+
+
+    uint32_t ind = 0;
+    for (uint32_t i = 0; i < (m + 3); ++i)
+    {
+        for (uint32_t j = 0; j < (n + 3); ++j)
+        {
+            TriMesh::VertexHandle vi = grid.vertex_handle(ind);
+            auto pt_grid = grid.point(vi);
+            surf[0].phi[j][i] = pt_grid[0];
+            surf[1].phi[j][i] = pt_grid[1];
+            surf[2].phi[j][i] = pt_grid[2];
+            ind++;
+        }
+    }
+
+    //
+    // Saving phi matrix
+    //
+    const auto file_out = filename_append_before_extension(filename_out, "phi");
+    std::cout << "-- Saving points " << file_out << std::endl;
+    std::ofstream out(file_out, std::ios::out);
+    for (uint32_t i = 0; i < (m + 3); ++i)
+    {
+        for (uint32_t j = 0; j < (n + 3); ++j)
+        {
+            out << std::fixed << "v " << surf[0].phi[i][j] << ' ' << surf[1].phi[i][j] << ' ' << surf[2].phi[i][j] << '\n';
+        }
+    }
+    out.close();
+    
+#endif
 
     //
     // For each vertex, compute the surface value at uv
@@ -153,6 +193,9 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     tm_save_mesh.stop();
+
+
+
 
     //
     // Print time info

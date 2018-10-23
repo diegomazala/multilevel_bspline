@@ -120,12 +120,6 @@ template <typename decimal_t> class bspline_t
             //
             auto[i, j, s, t] = compute_ijst(u, v);
 
-            // std::cout << std::fixed << "[" << u << ' ' << v << "] : " << s << ' '
-            // << t << '\n';
-            // std::cout << std::fixed << "[" << i << ' ' << j << "] : " << s << ' '
-            // << t << '\n';
-            // std::cout << std::abs(u - s) + std::abs(v - t)  << std::endl;
-
             //
             // Compute w_kl's and sum_sum w²_ab
             //
@@ -142,10 +136,10 @@ template <typename decimal_t> class bspline_t
                     // eq(3)
                     auto phi_kl = w[k][l] * z * sum_w_ab2_inv;
 
-                    auto w2 = w[k][l] * w[k][l];
+                    auto wkl2 = w[k][l] * w[k][l];
 
-                    delta[i + k][j + l] += w2 * phi_kl;
-                    omega[i + k][j + l] += w2;
+                    delta[i + k][j + l] += wkl2 * phi_kl;
+                    omega[i + k][j + l] += wkl2;
                 }
             }
         }
@@ -163,18 +157,18 @@ template <typename decimal_t> class bspline_t
                     // eq(5)
 
                     // this is the original from paper
-                    // this->phi[i][j] = delta[i][j] / omega[i][j];
+                    //this->phi[i][j] = delta[i][j] / omega[i][j];
 
                     // here we remove the offset inserted in the begining of the algorithm
-                    this->phi[i][j] += delta[i][j] / omega[i][j] + this->average_z;
+                    this->phi[i][j] = delta[i][j] / omega[i][j] + this->average_z;
                 }
                 else
                 {
                     // this is the original from paper
-                    // this->phi[i][j] = 0;
+                    //this->phi[i][j] = 0;
 
                     // here we remove the offset inserted in the begining of the algorithm
-                    this->phi[i][j] += average_z;
+                    this->phi[i][j] = average_z;
                 }
             }
         }
@@ -239,8 +233,6 @@ template <typename decimal_t> class bspline_t
         //
         auto[i, j, s, t] = compute_ijst(u, v);
 
-        // std::cout << std::fixed << "[" << u << ' ' << v << "] : " << s << ' ' <<
-        // t << '\n';
         //
         // Evaluate the function
         //
@@ -250,34 +242,10 @@ template <typename decimal_t> class bspline_t
             for (auto l = 0; l < 4; ++l)
             {
                 val += this->phi[i + k][j + l] * B<decimal_t>[k](s) * B<decimal_t>[l](t);
-                //(*this->phi)[i + k][j + l] * B<decimal_t>[k](s) * B<decimal_t>[l](t);
             }
         }
         return val;
     }
-
-    // //
-    // // Evaluate the function at (u, v)
-    // //
-    // decimal_t eval(uint32_t i, uint32_t j) const
-    // {
-    //     //i = i - 1;
-    //     //j = j - 1;
-    //     int m_size = 3;
-
-    //     decimal_t val = 0.0;
-    //     // Only over 3x3 coefficients in the C2 case and 2x2 in the C1 case
-    //     for (auto k = 0; k < m_size; k++)
-    //     {
-    //         for (auto l = 0; l < m_size; l++)
-    //         {
-    //             //val += this->phi[i + k][j + l] * tensor_BB<decimal_t>[k][l];
-    //             val += this->phi[i + k][j + l];
-    //         }
-    //     }
-
-    //     return val;
-    // }
 
     std::tuple<decimal_t, decimal_t> derivative(decimal_t u, decimal_t v)
     {

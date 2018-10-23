@@ -68,6 +68,7 @@ class multilevel_bspline_t
     // Overload operator () to evaluate the function at (u, v)
     //
     decimal_t operator()(decimal_t u, decimal_t v) const { return eval(u, v); }
+    decimal_t operator()(decimal_t u, decimal_t v, uint32_t k) const { return eval(u, v, k); }
 
 
     //
@@ -86,9 +87,22 @@ class multilevel_bspline_t
         return val;
     }
 
+    decimal_t eval(decimal_t u, decimal_t v, uint32_t k) const
+    {
+        //
+        // Evaluate the function in all levels
+        //
+        decimal_t val = 0;
+        for (uint32_t i = 0; i <= k; ++i)
+        {
+            val += surfaces[i](u, v);
+        }
+        return val;
+    }
+
     
 
-  protected:
+  //protected:
 
     //
     // Attributes

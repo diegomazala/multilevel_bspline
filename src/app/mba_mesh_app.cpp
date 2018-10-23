@@ -24,8 +24,12 @@ int main(int argc, char *argv[])
     const uint32_t m = atoi(argv[2]);
     const uint32_t n = m;
     const uint32_t h = atoi(argv[3]);
-    const std::string filename_out = filename_append_before_extension(
-        filename_append_before_extension(filename_in, argv[2]), "mba");
+    const std::string filename_out = 
+        filename_append_before_extension(
+            filename_append_before_extension(
+                filename_append_before_extension(filename_in, argv[2]), 
+                argv[3]), 
+            "mba");
 
     TriMesh mesh_source;
     timer tm_load_mesh;
@@ -122,6 +126,44 @@ int main(int argc, char *argv[])
     }
     tm_surf_compute.stop();
 
+#if 1
+    timer tm_updating_save_mesh;
+    for (uint32_t k = 5; k <= h; ++k)
+    {
+        //
+        // For each vertex, compute the surface value at uv
+        // and interpolate (x,y)
+        //
+        timer tm_update_vertices;
+        for (size_t index = 0; index < mesh.n_vertices(); ++index)
+        {
+            TriMesh::VertexHandle vi = mesh.vertex_handle(index);
+            const auto uv = mesh.texcoord2D(vi);
+            auto point_mesh = mesh.point(vi);
+            auto point_out = point_mesh;
+
+            for (auto p = 0; p < 3; ++p)
+            {
+                point_out[p] = surf[p](uv[0], uv[1], k);
+            }
+
+            mesh.set_point(vi, point_out);
+        }
+        tm_update_vertices.stop();
+        //
+        // Save output mesh
+        //
+        timer tm_save_mesh;
+        const std::string filename = filename_append_before_extension(filename_out, std::to_string(k));
+        if (!save_mesh(mesh, filename))
+        {
+            std::cout << "Could not save " << filename << std::endl;
+            return EXIT_FAILURE;
+        }
+        tm_save_mesh.stop();
+    }
+    tm_updating_save_mesh.stop();
+#else
     //
     // For each vertex, compute the surface value at uv
     // and interpolate (x,y)
@@ -153,6 +195,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     tm_save_mesh.stop();
+#endif
+
 
     //
     // Print time info
@@ -162,9 +206,9 @@ int main(int argc, char *argv[])
               << "Copying Arrays   : " << tm_copy_data_arrays.diff_sec() << '\n'
               << "Surface Computing: " << tm_surf_compute.diff_sec() << '\n'
               << "Building Ctrl Pts: " << tm_build_control_lattice.diff_sec() << '\n'
-              << "Update Vertices  : " << tm_update_vertices.diff_sec() << '\n'
+              //<< "Update Vertices  : " << tm_update_vertices.diff_sec() << '\n'
               << "Saving Ctrl Pts  : " << tm_save_control_lattice.diff_sec() << '\n'
-              << "Saving Mesh      : " << tm_save_mesh.diff_sec() << '\n'
+              //<< "Saving Mesh      : " << tm_save_mesh.diff_sec() << '\n'
               << "Total time       : " << tm_total.diff_sec_now() << '\n'
               << std::endl;
 
