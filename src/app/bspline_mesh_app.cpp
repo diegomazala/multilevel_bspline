@@ -22,8 +22,9 @@ int main(int argc, char *argv[])
     const std::string filename_in = argv[1];
     const uint32_t m = atoi(argv[2]);
     const uint32_t n = m;
+    const bool scattered = static_cast<bool>((argc > 3) ? atoi(argv[3]) : false);
     const std::string filename_out = filename_append_before_extension(
-        filename_append_before_extension(filename_in, argv[2]), "bsp_scattered");
+        filename_append_before_extension(filename_in, argv[2]), (scattered ? "bsp_scattered" : "bsp_mesh"));
 
     TriMesh mesh;
     timer tm_load_mesh;
@@ -92,29 +93,41 @@ int main(int argc, char *argv[])
     //
     // compute the surface function
     //
-#if 1
-    for (auto &s : surf)
+    if (scattered)
     {
-        s.compute();
-        // compute_error() is just for debug purposes
-        std::cout << std::fixed << "Error            : " << s.compute_error() << std::endl;
-    }
-    
-#else
-    uint32_t ind = 0;
-    for (uint32_t i = 0; i < (m + 3); ++i)
-    {
-        for (uint32_t j = 0; j < (n + 3); ++j)
+        //
+        // using scattered data as described by Lee-1997
+        //
+        for (auto &s : surf)
         {
-            TriMesh::VertexHandle vi = grid.vertex_handle(ind);
-            auto pt_grid = grid.point(vi);
-            surf[0].phi_matrix(j, i) = pt_grid[0];
-            surf[1].phi_matrix(j, i) = pt_grid[1];
-            surf[2].phi_matrix(j, i) = pt_grid[2];
-            ind++;
+            s.compute();
+            // compute_error() is just for debug purposes
+            std::cout << std::fixed << "Error            : " << s.compute_error() << std::endl;
         }
+    
     }
-#endif
+    else
+    {
+        //
+        // using closest points in original mesh
+        //
+        uint32_t ind = 0;
+        for (uint32_t i = 0; i < (m + 3); ++i)
+        {
+            for (uint32_t j = 0; j < (n + 3); ++j)
+            {
+                TriMesh::VertexHandle vi = grid.vertex_handle(ind);
+                auto pt_grid = grid.point(vi);
+                surf[0].phi_matrix(j, i) = pt_grid[0];
+                surf[1].phi_matrix(j, i) = pt_grid[1];
+                surf[2].phi_matrix(j, i) = pt_grid[2];
+                ind++;
+            }
+        }
+        for (auto &s : surf)
+            std::cout << std::fixed << "Error            : " << s.compute_error() << std::endl;
+    }
+
     tm_surf_compute.stop();
 
     //

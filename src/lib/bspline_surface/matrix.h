@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+
 #include <memory>
 
 template <typename scalar_t> class matrix_t

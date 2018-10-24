@@ -206,14 +206,12 @@ template <typename decimal_t> class bspline_t
     }
 
     decimal_t error(size_t point_index) const { return delta_z[point_index]; }
-
     const decimal_t *get_delta_z() const { return delta_z.data(); }
-
     const auto &phi_matrix(uint32_t i, uint32_t j) const { return this->phi[i][j]; }
     auto &phi_matrix(uint32_t i, uint32_t j) { return this->phi[i][j]; }
 
 
-//protected:
+protected:
 
     //
     // Evaluate the function at (u, v)
