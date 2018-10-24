@@ -79,9 +79,9 @@ template <typename decimal_t> class bspline_t
     bspline_t &operator=(bspline_t &&) = default;
 
     bspline_t(const decimal_t *_x_vec_ptr, const decimal_t *_y_vec_ptr, const decimal_t *_z_vec_ptr,
-              size_t _point_count, uint32_t _m, uint32_t _n)
+              size_t _point_count, size_t _m, size_t _n)
         : x_ptr(_x_vec_ptr), y_ptr(_y_vec_ptr), z_ptr(_z_vec_ptr), point_count(_point_count), m(_m),
-          n(_n), phi((m + 3), std::vector<decimal_t>(n + 3, 0)), delta_z(point_count)
+          n(_n), phi((n + 3), std::vector<decimal_t>(m + 3, 0)), delta_z(point_count)
     {
         this->init();
     }
@@ -91,8 +91,8 @@ template <typename decimal_t> class bspline_t
     //
     void compute()
     {
-        matrix_t delta = {(m + 3), std::vector<decimal_t>(n + 3, 0)};
-        matrix_t omega = {(m + 3), std::vector<decimal_t>(n + 3, 0)};
+        matrix_t delta = {(n + 3), std::vector<decimal_t>(m + 3, 0)};
+        matrix_t omega = {(n + 3), std::vector<decimal_t>(m + 3, 0)};
 
         const decimal_t interval_normalization_factor_u = m * urange_inv;
         const decimal_t interval_normalization_factor_v = n * vrange_inv;
@@ -143,9 +143,9 @@ template <typename decimal_t> class bspline_t
         //
         // Compute phi matrix [m+3,n+3]
         //
-        for (uint32_t i = 0; i < m + 3; ++i)
+        for (size_t i = 0; i < n + 3; ++i)
         {
-            for (uint32_t j = 0; j < n + 3; ++j)
+            for (size_t j = 0; j < m + 3; ++j)
             {
                 // avoiding division by zero
                 if (!logically_equal(omega[i][j], static_cast<decimal_t>(0)))
@@ -182,7 +182,7 @@ template <typename decimal_t> class bspline_t
     // (i, j) must be inside of the domain
     // 0 <= i <= m and  0 <= j <= n, where m_ and n_ are retrieved by
     //
-    // decimal_t operator()(uint32_t i, uint32_t j) const { return eval(i, j); }
+    // decimal_t operator()(size_t i, size_t j) const { return eval(i, j); }
 
     //
     // Compute the difference between the original z and
@@ -207,8 +207,10 @@ template <typename decimal_t> class bspline_t
 
     decimal_t error(size_t point_index) const { return delta_z[point_index]; }
     const decimal_t *get_delta_z() const { return delta_z.data(); }
-    const auto &phi_matrix(uint32_t i, uint32_t j) const { return this->phi[i][j]; }
-    auto &phi_matrix(uint32_t i, uint32_t j) { return this->phi[i][j]; }
+    const auto &phi_matrix(size_t i, size_t j) const { return this->phi[i][j]; }
+    auto &phi_matrix(size_t i, size_t j) { return this->phi[i][j]; }
+    auto urange() const { return this->umax - this->umin; }
+    auto vrange() const { return this->vmax - this->vmin; }
 
 
 protected:
@@ -280,17 +282,17 @@ protected:
     std::tuple<int64_t, int64_t, decimal_t, decimal_t> compute_ijst(decimal_t x, decimal_t y) const
     {
         decimal_t floor[2] = {std::floor(x), std::floor(y)};
-        auto i = static_cast<int64_t>(floor[0] - 1);
-        auto j = static_cast<int64_t>(floor[1] - 1);
+        size_t i = static_cast<size_t>(floor[0] - 1);
+        size_t j = static_cast<size_t>(floor[1] - 1);
         decimal_t s = x - floor[0];
         decimal_t t = y - floor[1];
 
-        if (i == m - 1)
+        if (i == this->n - 1)
         {
             i--;
             s = 1;
         }
-        if (j == n - 1)
+        if (j == this->m - 1)
         {
             j--;
             t = 1;
@@ -375,10 +377,11 @@ protected:
     const decimal_t *y_ptr;
     const decimal_t *z_ptr;
     const size_t point_count = 0;
-    uint32_t m, n;
+    size_t m, n;
     matrix_t phi;
     decimal_t umin, vmin, umax, vmax, urange_inv, vrange_inv, average_z;
     std::vector<decimal_t> delta_z;
+
 };
 
 } // namespace surface

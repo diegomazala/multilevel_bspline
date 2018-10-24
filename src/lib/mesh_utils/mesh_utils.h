@@ -335,3 +335,24 @@ bool save_points_obj(const TriMesh& mesh, const std::string& filename)
         return false;
     }   
 }
+
+template <typename decimal_t>
+bool save_points_obj(const std::vector<std::array<decimal_t, 3>>& points, const std::string& filename)
+{
+    try
+    {
+        std::cout << "-- Saving points " << filename << std::endl;
+        std::ofstream out(filename, std::ios::out);
+        for (const auto pt : points)
+        {
+            out << std::fixed << "v " << pt[0] << ' ' << pt[1] << ' ' << pt[2] << '\n';
+        }
+        out.close();
+        return true;
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << ex.what() << std::endl;
+        return false;
+    }   
+}

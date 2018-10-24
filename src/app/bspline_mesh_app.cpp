@@ -2,8 +2,6 @@
 #include <bspline_surface.h>
 #include <fstream>
 #include <iostream>
-#include <memory>
-#include <matrix.h>
 
 
 int main(int argc, char *argv[])
@@ -20,11 +18,12 @@ int main(int argc, char *argv[])
     }
 
     const std::string filename_in = argv[1];
-    const uint32_t m = atoi(argv[2]);
-    const uint32_t n = m;
+    const size_t m = atoi(argv[2]);
+    const size_t n = m;
     const bool scattered = static_cast<bool>((argc > 3) ? atoi(argv[3]) : false);
-    const std::string filename_out = filename_append_before_extension(
-        filename_append_before_extension(filename_in, argv[2]), (scattered ? "bsp_scattered" : "bsp_mesh"));
+    const std::string filename_out =
+        filename_append_before_extension(filename_append_before_extension(filename_in, argv[2]),
+                                         (scattered ? "bsp_scattered" : "bsp_mesh"));
 
     TriMesh mesh;
     timer tm_load_mesh;
@@ -38,36 +37,15 @@ int main(int argc, char *argv[])
     //
     // build knn
     //
-    //constexpr int dimension = 3;
+    // constexpr int dimension = 3;
     // const int neighbours_count = (argc > 3) ? atoi(argv[3]) : 16;
     const int kdtree_count = (argc > 4) ? atoi(argv[3]) : 10;
     const int knn_search_checks = (argc > 5) ? atoi(argv[4]) : 16;
 
-    //
-    // build control lattice grid
-    //
     timer tm_build_control_lattice;
-    TriMesh grid;
-    create_3d_control_lattice<decimal_t>(grid, m + 3 - 1, n + 3 - 1, kdtree_count,
-                                         knn_search_checks, mesh);
+    const auto &control_points =
+        compute_control_points<decimal_t>(mesh, n + 3, m + 3, kdtree_count, knn_search_checks);
     tm_build_control_lattice.stop();
-
-    //
-    // save the grid (control points)
-    //
-    timer tm_save_control_lattice;
-    {
-        // const std::string filename_pts = filename_append_before_extension(
-        //     filename_append_before_extension(filename_in, argv[2]), "pts");
-        // if (!save_points_obj(grid, filename_pts))
-        // {
-        //     std::cout << "Could not save control_lattice mesh " << filename_pts << std::endl;
-        //     return EXIT_FAILURE;
-        // }
-    }
-    tm_save_control_lattice.stop();
-
-
 
     //
     // build data arrays
@@ -81,6 +59,7 @@ int main(int argc, char *argv[])
     mesh_uv_to_vecs(mesh, x, y, z, u_array, v_array);
     tm_copy_data_arrays.stop();
 
+
     //
     // construct the surface function
     //
@@ -89,6 +68,17 @@ int main(int argc, char *argv[])
         {{u_array.data(), v_array.data(), x.data(), mesh.n_vertices(), m, n},
          {u_array.data(), v_array.data(), y.data(), mesh.n_vertices(), m, n},
          {u_array.data(), v_array.data(), z.data(), mesh.n_vertices(), m, n}}};
+
+    
+
+    //
+    // saving control points for visualization 
+    //
+    // {
+    //     const std::string filename_ctr_pts = filename_append_before_extension(
+    //         filename_append_before_extension(filename_in, argv[2]), "ctrl_pts");
+    //     save_points_obj(control_points, filename_ctr_pts);
+    // }
 
     //
     // compute the surface function
@@ -101,27 +91,22 @@ int main(int argc, char *argv[])
         for (auto &s : surf)
         {
             s.compute();
-            // compute_error() is just for debug purposes
             std::cout << std::fixed << "Error            : " << s.compute_error() << std::endl;
         }
-    
     }
     else
     {
         //
         // using closest points in original mesh
         //
-        uint32_t ind = 0;
-        for (uint32_t i = 0; i < (m + 3); ++i)
+        for (size_t i = 0; i < (n + 3); ++i)
         {
-            for (uint32_t j = 0; j < (n + 3); ++j)
+            for (size_t j = 0; j < (m + 3); ++j)
             {
-                TriMesh::VertexHandle vi = grid.vertex_handle(ind);
-                auto pt_grid = grid.point(vi);
-                surf[0].phi_matrix(j, i) = pt_grid[0];
-                surf[1].phi_matrix(j, i) = pt_grid[1];
-                surf[2].phi_matrix(j, i) = pt_grid[2];
-                ind++;
+                auto index = i * (m + 3) + j;
+                surf[0].phi_matrix(j, i) = control_points[index][0];
+                surf[1].phi_matrix(j, i) = control_points[index][1];
+                surf[2].phi_matrix(j, i) = control_points[index][2];
             }
         }
         for (auto &s : surf)
@@ -162,9 +147,6 @@ int main(int argc, char *argv[])
     }
     tm_save_mesh.stop();
 
-
-
-
     //
     // Print time info
     //
@@ -174,7 +156,6 @@ int main(int argc, char *argv[])
               << "Surface Computing: " << tm_surf_compute.diff_sec() << '\n'
               << "Building Ctrl Pts: " << tm_build_control_lattice.diff_sec() << '\n'
               << "Update Vertices  : " << tm_update_vertices.diff_sec() << '\n'
-              << "Saving Ctrl Pts  : " << tm_save_control_lattice.diff_sec() << '\n'
               << "Saving Mesh      : " << tm_save_mesh.diff_sec() << '\n'
               << "Total time       : " << tm_total.diff_sec_now() << '\n'
               << std::endl;

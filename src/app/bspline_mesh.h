@@ -7,62 +7,6 @@
 #include <timer.h>
 
 
-template <typename decimal_t, int dimension>
-std::shared_ptr<nanoflann::kdtree_t<decimal_t, dimension>> create_kdtree_from_mesh(TriMesh &mesh,
-                             int kdtree_count = 10)
-{
-    //
-    // Collect data
-    //
-    nanoflann::PointCloud<decimal_t> samples;
-    samples.pts.resize(mesh.n_vertices());
-    size_t pt_index = 0;
-    for (auto vi = mesh.vertices_begin(); vi != mesh.vertices_end(); ++vi, ++pt_index)
-    {
-        const auto &pt = mesh.point(*vi);
-        samples.pts[pt_index].x = pt[0];
-        samples.pts[pt_index].y = pt[1];
-        samples.pts[pt_index].z = pt[2];
-    }
-
-    //
-    // Construct a kd-tree index
-    const nanoflann::pointcloud_adaptor_t<decimal_t> pc2kd(samples); // The adaptor
-    //
-    // construct a kd-tree index:
-    //
-    //nanoflann::kdtree_t<decimal_t, dimension> kdtree(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
-    //kdtree.buildIndex();
-    auto kdtree = std::make_shared<nanoflann::kdtree_t<decimal_t, dimension>>(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
-    kdtree->buildIndex();
-    
-    return kdtree;
-}
-
-
-template <typename decimal_t, int dimension>
-uint32_t find_closest_neighbor(const nanoflann::kdtree_t<decimal_t, dimension> &kdtree,
-                               const TriMesh::Point &pt, int knn_search_checks = 16)
-{
-    const uint32_t num_results = 1;
-    uint32_t ret_index;
-    decimal_t out_dist_sqr;
-    nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
-    resultSet.init(&ret_index, &out_dist_sqr);
-    kdtree.findNeighbors(resultSet, &pt[0], nanoflann::SearchParams(knn_search_checks));
-    return ret_index;
-}
-
-template <typename decimal_t, int dimension>
-TriMesh::Point find_closest_neighbor(const nanoflann::kdtree_t<decimal_t, dimension> &kdtree,
-                                     const TriMesh::Point &pt, const TriMesh &mesh,
-                                     int knn_search_checks = 16)
-{
-    uint32_t ret_index = find_closest_neighbor(kdtree, pt, knn_search_checks);
-    return mesh.point(mesh.vertex_handle(ret_index));
-}
-
-
 template <typename decimal_t>
 void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, int knn_search_checks,
                                TriMesh &mesh)
@@ -72,10 +16,7 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     constexpr int dimension = 2;
 
     create_grid_mesh(grid, m, n);
-    
-#if 0
-    auto kdtree_ptr = create_kdtree_from_mesh<decimal_t, dimension>(mesh, kdtree_count);
-#else
+
     //
     // Collect data
     //
@@ -96,9 +37,9 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     //
     // construct a kd-tree index:
     //
-    nanoflann::kdtree_t<decimal_t, dimension> kdtree(dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
+    nanoflann::kdtree_t<decimal_t, dimension> kdtree(
+        dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
     kdtree.buildIndex();
-#endif
 
 
     //
@@ -108,6 +49,7 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
     for (auto vi = grid.vertices_begin(); vi != grid.vertices_end(); ++vi)
     {
         auto uv = grid.texcoord2D(*vi);
+        //auto uv = grid.point(*vi);
         const uint32_t num_results = 1;
         uint32_t ret_index;
         decimal_t out_dist_sqr;
@@ -116,14 +58,73 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
         kdtree.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(knn_search_checks));
         const auto &pt_mesh = mesh.point(mesh.vertex_handle(ret_index));
 
-#if USE_GRID_CLOSEST_Z_ONLY   // apply only z coord
+#if USE_GRID_CLOSEST_Z_ONLY // apply only z coord
         pt[2] = pt_mesh[2];
         grid.set_point(*vi, pt);
 #else
         grid.set_point(*vi, pt_mesh);
-#endif        
-
-
+#endif
     }
     tm_kdtree_search.stop();
+}
+
+
+
+
+template <typename decimal_t>
+std::vector<std::array<decimal_t, 3>>
+compute_control_points(const TriMesh &mesh, size_t rows, size_t cols, int kdtree_count = 10, int knn_search_checks = 16)
+{
+    constexpr int dimension = 2;
+
+    //
+    // Collect data
+    //
+    nanoflann::PointCloud<decimal_t> samples;
+    samples.pts.resize(mesh.n_vertices());
+    size_t pt_index = 0;
+    for (auto vi = mesh.vertices_begin(); vi != mesh.vertices_end(); ++vi, ++pt_index)
+    {
+        const auto &uv = mesh.texcoord2D(*vi);
+        samples.pts[pt_index].x = uv[0];
+        samples.pts[pt_index].y = uv[1];
+        samples.pts[pt_index].z = 0;
+    }
+
+    //
+    // Construct a kd-tree index
+    const nanoflann::pointcloud_adaptor_t<decimal_t> pc2kd(samples); // The adaptor
+    //
+    // construct a kd-tree index:
+    //
+    nanoflann::kdtree_t<decimal_t, dimension> kdtree(
+        dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
+    kdtree.buildIndex();
+
+    std::vector<std::array<decimal_t, 3>> control_points(rows * cols);
+
+    size_t index = 0;
+    for (size_t i = 0; i < rows; ++i)
+    {
+        for (size_t j = 0; j < cols; ++j)
+        {
+            decimal_t uv[2] = {static_cast<decimal_t>(j) / (cols - 1),
+                               static_cast<decimal_t>(i) / (rows - 1)};
+
+            const uint32_t num_results = 1;
+            uint32_t ret_index;
+            decimal_t out_dist_sqr;
+            nanoflann::KNNResultSet<decimal_t, uint32_t> resultSet(num_results);
+            resultSet.init(&ret_index, &out_dist_sqr);
+            kdtree.findNeighbors(resultSet, &uv[0], nanoflann::SearchParams(knn_search_checks));
+            const auto &pt_mesh = mesh.point(mesh.vertex_handle(ret_index));
+            //const auto index = i * cols + j;
+            control_points[index][0] = pt_mesh[0];
+            control_points[index][1] = pt_mesh[1];
+            control_points[index][2] = pt_mesh[2];
+            index++;
+        }
+    }
+    
+    return control_points;
 }

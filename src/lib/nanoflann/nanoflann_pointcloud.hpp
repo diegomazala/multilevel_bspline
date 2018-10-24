@@ -13,7 +13,7 @@ struct PointCloud
 
 	struct Point
 	{
-		T  x, y, z;
+		T  x = 0, y = 0, z = 0;
 	};
 
 	std::vector<Point>  pts;

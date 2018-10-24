@@ -1,11 +1,9 @@
 #include "bspline_mesh.h"
 #include <bspline_surface.h>
-#include <mba_surface.h>
 #include <fstream>
 #include <iostream>
+#include <mba_surface.h>
 #include <memory>
-
-#define COMPUTE_SURF_GRID 0
 
 int main(int argc, char *argv[])
 {
@@ -13,7 +11,7 @@ int main(int argc, char *argv[])
     using decimal_t = double;
     timer tm_total;
 
-    if (argc < 3)
+    if (argc < 4)
     {
         std::cout << "Usage: app <mesh_file> < m_n > < h >\n"
                   << "Usage: app ../data/face.obj 3 3 \n";
@@ -24,16 +22,15 @@ int main(int argc, char *argv[])
     const uint32_t m = atoi(argv[2]);
     const uint32_t n = m;
     const uint32_t h = atoi(argv[3]);
-    const std::string filename_out = 
-        filename_append_before_extension(
-            filename_append_before_extension(
-                filename_append_before_extension(filename_in, argv[2]), 
-                argv[3]), 
-            "mba");
+    const bool scattered = static_cast<bool>((argc > 4) ? atoi(argv[4]) : false);
+    const std::string filename_out = filename_append_before_extension(
+        filename_append_before_extension(filename_append_before_extension(filename_in, argv[2]),
+                                         argv[3]),
+        "mba");
 
-    TriMesh mesh_source;
+    TriMesh mesh;
     timer tm_load_mesh;
-    if (!load_mesh(mesh_source, filename_in))
+    if (!load_mesh(mesh, filename_in))
     {
         std::cout << "Could not read " << filename_in << std::endl;
         return EXIT_FAILURE;
@@ -43,7 +40,6 @@ int main(int argc, char *argv[])
     //
     // build knn
     //
-    constexpr int dimension = 3;
     const int kdtree_count = (argc > 4) ? atoi(argv[3]) : 10;
     const int knn_search_checks = (argc > 5) ? atoi(argv[4]) : 16;
 
@@ -51,49 +47,9 @@ int main(int argc, char *argv[])
     // build control lattice grid
     //
     timer tm_build_control_lattice;
-    TriMesh grid;
-    create_3d_control_lattice<decimal_t>(grid, m + 3 - 1, n + 3 - 1, kdtree_count,
-                                         knn_search_checks, mesh_source);
+    const auto &control_points =
+        compute_control_points<decimal_t>(mesh, n + 3, m + 3, kdtree_count, knn_search_checks);
     tm_build_control_lattice.stop();
-
-    //
-    // save the grid (control points)
-    //
-    timer tm_save_control_lattice;
-    {
-        const std::string filename_pts = filename_append_before_extension(
-            filename_append_before_extension(filename_in, argv[2]), "pts");
-        if (!save_points_obj(grid, filename_pts))
-        {
-            std::cout << "Could not save control_lattice mesh " << filename_pts << std::endl;
-            return EXIT_FAILURE;
-        }
-    }
-    tm_save_control_lattice.stop();
-
-    //
-    // Compute kdtree of the grid
-    //
-    nanoflann::PointCloud<decimal_t> samples;
-    samples.pts.resize(grid.n_vertices());
-    size_t pt_index = 0;
-    for (auto vi = grid.vertices_begin(); vi != grid.vertices_end(); ++vi, ++pt_index)
-    {
-        const auto &pt = grid.point(*vi);
-        samples.pts[pt_index].x = pt[0];
-        samples.pts[pt_index].y = pt[1];
-        samples.pts[pt_index].z = pt[2];
-    }
-    const nanoflann::pointcloud_adaptor_t<decimal_t> pc2kd(samples); // The adaptor
-    nanoflann::kdtree_t<decimal_t, dimension> kdtree_grid(
-        dimension, pc2kd, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_count));
-    kdtree_grid.buildIndex();
-
-#if COMPUTE_SURF_GRID
-    TriMesh &mesh = grid;
-#else
-    TriMesh &mesh = mesh_source;
-#endif
 
     //
     // build data arrays
@@ -111,24 +67,56 @@ int main(int argc, char *argv[])
     // construct the surface function
     //
     timer tm_surf_compute;
-    //std::array<surface::bspline_t<decimal_t>, 3> surf{
-    std::array<surface::multilevel_bspline_t<decimal_t>, 3> surf{ 
+    std::array<surface::multilevel_bspline_t<decimal_t>, 3> surf{
         {{u_array.data(), v_array.data(), x.data(), mesh.n_vertices(), m, n, h},
          {u_array.data(), v_array.data(), y.data(), mesh.n_vertices(), m, n, h},
          {u_array.data(), v_array.data(), z.data(), mesh.n_vertices(), m, n, h}}};
 
     //
+    // saving control points for visualization
+    //
+    // {
+    //     const std::string filename_ctr_pts = filename_append_before_extension(
+    //         filename_append_before_extension(filename_in, argv[2]), "ctrl_pts");
+    //     save_points_obj(control_points, filename_ctr_pts);
+    // }
+
+    //
     // compute the surface function
     //
-    for (auto &s : surf)
+    if (scattered)
     {
-        s.compute();
+        //
+        // using scattered data as described by Lee-1997
+        //
+        for (auto &s : surf)
+        {
+            s.compute();
+        }
+    }
+    else
+    {
+        //
+        // using closest points in original mesh
+        //
+        std::vector<decimal_t> x(control_points.size());
+        std::vector<decimal_t> y(control_points.size());
+        std::vector<decimal_t> z(control_points.size());
+        for (size_t i = 0; i < control_points.size(); ++i)
+        {
+            x[i] = control_points[i][0];
+            y[i] = control_points[i][1];
+            z[i] = control_points[i][2];
+        }
+        surf[0].compute_with_control_points(x);
+        surf[1].compute_with_control_points(y);
+        surf[2].compute_with_control_points(z);
     }
     tm_surf_compute.stop();
 
 #if 1
     timer tm_updating_save_mesh;
-    for (uint32_t k = 5; k <= h; ++k)
+    for (size_t k = 0; k <= h; ++k)
     {
         //
         // For each vertex, compute the surface value at uv
@@ -154,7 +142,8 @@ int main(int argc, char *argv[])
         // Save output mesh
         //
         timer tm_save_mesh;
-        const std::string filename = filename_append_before_extension(filename_out, std::to_string(k));
+        const std::string filename =
+            filename_append_before_extension(filename_out, std::to_string(k));
         if (!save_mesh(mesh, filename))
         {
             std::cout << "Could not save " << filename << std::endl;
@@ -197,7 +186,6 @@ int main(int argc, char *argv[])
     tm_save_mesh.stop();
 #endif
 
-
     //
     // Print time info
     //
@@ -206,8 +194,6 @@ int main(int argc, char *argv[])
               << "Copying Arrays   : " << tm_copy_data_arrays.diff_sec() << '\n'
               << "Surface Computing: " << tm_surf_compute.diff_sec() << '\n'
               << "Building Ctrl Pts: " << tm_build_control_lattice.diff_sec() << '\n'
-              //<< "Update Vertices  : " << tm_update_vertices.diff_sec() << '\n'
-              << "Saving Ctrl Pts  : " << tm_save_control_lattice.diff_sec() << '\n'
               //<< "Saving Mesh      : " << tm_save_mesh.diff_sec() << '\n'
               << "Total time       : " << tm_total.diff_sec_now() << '\n'
               << std::endl;
