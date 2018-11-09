@@ -61,4 +61,32 @@ set(COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common)
 set(LIB_NAME common)
 add_library(${LIB_NAME} INTERFACE)
 target_include_directories(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR})
-target_sources(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR}/timer)
+target_sources(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR}/timer.h)
+
+
+
+###########################################################################
+#
+# raytracing lib
+#
+set(RAYTRACING_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/raytracing)
+set(LIB_NAME raytracing)
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE ${RAYTRACING_INCLUDE_DIR})
+target_sources(${LIB_NAME} INTERFACE 
+    ${RAYTRACING_INCLUDE_DIR}/geometry.h
+    ${RAYTRACING_INCLUDE_DIR}/raytri.h)
+
+
+###########################################################################
+#
+# stb_image lib
+#
+set(STB_IMAGE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb_image)
+set(LIB_NAME stb_image)
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE ${STB_IMAGE_INCLUDE_DIR})
+target_sources(${LIB_NAME} INTERFACE 
+    ${STB_IMAGE_INCLUDE_DIR}/stb_image.h
+    ${STB_IMAGE_INCLUDE_DIR}/stb_image_write.h
+    ${STB_IMAGE_INCLUDE_DIR}/stb_image_resize.h)

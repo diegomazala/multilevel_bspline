@@ -94,3 +94,23 @@ if (OpenMesh_FOUND)
         target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} stdc++fs)
     endif()
 endif()
+
+
+
+
+###########################################################################
+#
+# cdm
+#
+if (OpenMesh_FOUND)
+    project(cdm VERSION 0.1 LANGUAGES CXX)
+    add_executable(${PROJECT_NAME} cdm.cpp)
+    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+    target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
+    set (LINK_LIBS ${OPENMESH_LIBRARIES} common raytracing Threads::Threads)
+    if (MSVC)
+        target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+    else()
+        target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} stdc++fs)
+    endif()
+endif()

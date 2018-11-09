@@ -12,6 +12,7 @@ namespace fs = std::experimental::filesystem;
 #define _USE_MATH_DEFINES
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
 #if _MSC_VER
 #pragma warning(pop)
 #endif
@@ -50,6 +51,7 @@ struct MeshTraits : OpenMesh::DefaultTraits
 };
 
 using TriMesh = OpenMesh::TriMesh_ArrayKernelT<MeshTraits<double>>;
+using Mesh_t = OpenMesh::PolyMesh_ArrayKernelT<MeshTraits<double>>;
 
 template <typename T>
 constexpr T ndc(T v, T min, T max) // normalize to [0, 1]
@@ -71,7 +73,8 @@ filename_append_before_extension(const std::string &filename_in,
     return filename_out.str();
 }
 
-static bool load_mesh(TriMesh &mesh, const std::string &filename)
+template <typename mesh_t>
+static bool load_mesh(mesh_t &mesh, const std::string &filename)
 {
     mesh.request_vertex_texcoords2D();
     mesh.request_vertex_normals();
@@ -88,7 +91,8 @@ static bool load_mesh(TriMesh &mesh, const std::string &filename)
     }
 }
 
-static bool save_mesh(const TriMesh &mesh, const std::string &filename)
+template <typename mesh_t>
+static bool save_mesh(const mesh_t &mesh, const std::string &filename)
 {
     try
     {
@@ -315,8 +319,8 @@ void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<
 	}
 }
 
-
-bool save_points_obj(const TriMesh& mesh, const std::string& filename)
+template <typename mesh_t>
+bool save_points_obj(const mesh_t& mesh, const std::string& filename)
 {
     try
     {

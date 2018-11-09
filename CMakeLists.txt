@@ -19,6 +19,10 @@ if (NOT Eigen3_FOUND)
     message(Warning " Eigen3 was not found. Some projects will not be built")
 endif()
 
+find_package(Threads)
+if (NOT Threads_FOUND)
+    message(Warning " Threads was not found. Some projects will not be built")
+endif()
 
 
 add_subdirectory(src/lib)
