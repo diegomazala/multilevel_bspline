@@ -4,8 +4,6 @@
 #include <timer.h>
 namespace fs = std::experimental::filesystem;
 
-#include "raytri.h"
-
 #if _MSC_VER
 #pragma warning(push, 0) // supressing warnings for OpenMesh
 #endif
@@ -18,9 +16,64 @@ namespace fs = std::experimental::filesystem;
 #endif
 
 using decimal_t = float;
-typedef OpenMesh::PolyMesh_ArrayKernelT<OpenMesh::DefaultTraits> MyMesh;
-// using Mesh_t = OpenMesh::PolyMesh_ArrayKernelT<>;
-// typedef OpenMesh::PolyMesh_ArrayKernelT<> PolyMesh;
+#include <OpenMesh/Core/IO/MeshIO.hh>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+typedef OpenMesh::TriMesh_ArrayKernelT<> TriMesh;
+
+#include <embree3/common/math/vec3.h>
+#include <embree3/common/math/vec3fa.h>
+#include <embree3/common/simd/sse.h>
+#include <embree3/common/sys/alloc.h>
+#include <embree3/rtcore.h>
+#include <embree3/rtcore_ray.h>
+struct Vertex
+{
+    float x, y, z, r;
+};
+struct Triangle
+{
+    int v0, v1, v2;
+};
+
+void error_handler(void *userPtr, const RTCError code, const char *str)
+{
+    if (code == RTC_ERROR_NONE)
+        return;
+
+    printf("Embree: ");
+    switch (code)
+    {
+    case RTC_ERROR_UNKNOWN:
+        printf("RTC_ERROR_UNKNOWN");
+        break;
+    case RTC_ERROR_INVALID_ARGUMENT:
+        printf("RTC_ERROR_INVALID_ARGUMENT");
+        break;
+    case RTC_ERROR_INVALID_OPERATION:
+        printf("RTC_ERROR_INVALID_OPERATION");
+        break;
+    case RTC_ERROR_OUT_OF_MEMORY:
+        printf("RTC_ERROR_OUT_OF_MEMORY");
+        break;
+    case RTC_ERROR_UNSUPPORTED_CPU:
+        printf("RTC_ERROR_UNSUPPORTED_CPU");
+        break;
+    case RTC_ERROR_CANCELLED:
+        printf("RTC_ERROR_CANCELLED");
+        break;
+    default:
+        printf("invalid error code");
+        break;
+    }
+    if (str)
+    {
+        printf(" (");
+        while (*str)
+            putchar(*str++);
+        printf(")\n");
+    }
+    exit(1);
+}
 
 template <typename mesh_t> bool save_points_obj(const mesh_t &mesh, const std::string &filename)
 {
@@ -42,7 +95,7 @@ template <typename mesh_t> bool save_points_obj(const mesh_t &mesh, const std::s
     }
 }
 
-static void compute_vertex_normal(MyMesh &mesh)
+static void compute_vertex_normal(TriMesh &mesh)
 {
     if (!mesh.has_vertex_normals())
         mesh.request_vertex_normals();
@@ -53,10 +106,10 @@ static void compute_vertex_normal(MyMesh &mesh)
     mesh.update_vertex_normals();
     mesh.update_face_normals();
 
-    MyMesh::VertexIter v_it, v_end(mesh.vertices_end());
-    MyMesh::VertexFaceIter vf_it;
-    MyMesh::Normal tmp;
-    MyMesh::Scalar count;
+    TriMesh::VertexIter v_it, v_end(mesh.vertices_end());
+    TriMesh::VertexFaceIter vf_it;
+    TriMesh::Normal tmp;
+    TriMesh::Scalar count;
     for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
     {
         tmp[0] = tmp[1] = tmp[2] = 0.0;
@@ -70,39 +123,154 @@ static void compute_vertex_normal(MyMesh &mesh)
     }
 }
 
+void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
+{
+    RTCDevice device = nullptr;
+    RTCScene scene = nullptr;
+
+    device = rtcNewDevice(nullptr);
+    error_handler(nullptr, rtcGetDeviceError(device), "Fail creating device");
+
+    scene = rtcNewScene(device);
+    error_handler(nullptr, rtcGetDeviceError(device), "Fail creating scene");
+
+    timer tm_build_mesh;
+    {
+        RTCGeometry mesh_embree = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+        // add vertices
+        Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(mesh_embree, RTC_BUFFER_TYPE_VERTEX, 0,
+                                                             RTC_FORMAT_FLOAT3, sizeof(Vertex),
+                                                             mesh_target.n_vertices());
+        std::size_t vInd = 0;
+        for (auto vi = mesh_target.vertices_begin(); vi != mesh_target.vertices_end(); ++vi, ++vInd)
+        {
+            std::memcpy(&vertices[vInd], mesh_target.point(*vi).data(), sizeof(float) * 3);
+        }
+
+        // add faces
+        Triangle *triangles = (Triangle *)rtcSetNewGeometryBuffer(
+            mesh_embree, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Triangle),
+            mesh_target.n_faces());
+        std::size_t fInd = 0;
+        for (auto fi = mesh_target.faces_begin(); fi != mesh_target.faces_end(); ++fi, ++fInd)
+        {
+            auto fv_it = mesh_target.fv_iter(fi);
+            triangles[fInd].v0 = fv_it->idx();
+            fv_it++;
+            triangles[fInd].v1 = fv_it->idx();
+            fv_it++;
+            triangles[fInd].v2 = fv_it->idx();
+        }
+
+        rtcCommitGeometry(mesh_embree);
+        unsigned int geomID = rtcAttachGeometry(scene, mesh_embree);
+        rtcReleaseGeometry(mesh_embree);
+    }
+
+    rtcCommitScene(scene);
+    error_handler(nullptr, rtcGetDeviceError(device), "Fail committing scene");
+
+    tm_build_mesh.stop();
+
+    RTCIntersectContext context;
+    rtcInitIntersectContext(&context);
+
+    timer ray_intersect;
+    for (auto vi = mesh_base.vertices_begin(); vi != mesh_base.vertices_end(); ++vi)
+    {
+        std::cout << vi->idx() << '/' << mesh_base.n_vertices() << '\r';
+        auto &point = mesh_base.point(*vi);
+        const auto &normal = mesh_base.normal(*vi);
+
+        RTCRayHit rayhit;
+        RTCRay &ray = rayhit.ray;
+        RTCHit &hit = rayhit.hit;
+        hit.geomID = RTC_INVALID_GEOMETRY_ID;
+        ray.org_x = point[0];
+        ray.org_y = point[1];
+        ray.org_z = point[2];
+        ray.dir_x = normal[0];
+        ray.dir_y = normal[1];
+        ray.dir_z = normal[2];
+        ray.tnear = 0.0f;
+        ray.tfar = 1.0f;
+        ray.time = 0.0f;
+        ray.id = RTC_INVALID_GEOMETRY_ID;
+
+        rtcIntersect1(scene, &context, &rayhit);
+
+        if (hit.geomID == RTC_INVALID_GEOMETRY_ID)
+        {
+            // invert direction
+            ray.dir_x = -normal[0];
+            ray.dir_y = -normal[1];
+            ray.dir_z = -normal[2];
+
+            rtcIntersect1(scene, &context, &rayhit);
+
+            if (hit.geomID == RTC_INVALID_GEOMETRY_ID)
+            {
+                // std::cout << ray.tnear << ' ' << ray.tfar << std::endl;
+                // point[2] = 1;
+            }
+            else
+            {
+                point += -(normal * ray.tfar);
+            }
+        }
+        else
+        {
+            point += (normal * ray.tfar);
+        }
+
+        mesh_base.set_point(*vi, point);
+
+        // std::cout << ray.tnear << ' ' << ray.tfar << ' ' << ((hit.geomID ==
+        // RTC_INVALID_GEOMETRY_ID) ? "RTC_INVALID_GEOMETRY_ID" : "HIT OK") << std::endl;
+    }
+    ray_intersect.stop();
+
+    std::cout << std::fixed << std::endl
+              << "Time in seconds intersection code:" << std::endl
+              << "Building Meshes: " << tm_build_mesh.diff_sec() << std::endl
+              << "Ray Intersect  : " << ray_intersect.diff_sec() << std::endl
+              << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     timer tm_total;
 
     if (argc != 3)
     {
-        std::cout << "Usage: app <surface_mesh_file> <base_mesh_file>\n"
+        std::cout << "Usage: app <mesh_surface_file> <target_mesh_file>\n"
                   << "Usage: app ../data/face_bsp.obj face.obj \n";
         return EXIT_FAILURE;
     }
 
-    const std::string filename_base_mesh = argv[1];
-    const std::string filename_surface_mesh = argv[2];
+    const std::string filename_mesh_target = argv[1];
+    const std::string filename_mesh_surface = argv[2];
     const std::string filename_out =
-        fs::path(filename_surface_mesh).replace_extension("pts.obj").string();
+        fs::path(filename_mesh_surface).replace_extension("pts.obj").string();
 
     timer tm_load_mesh;
-    MyMesh surface_mesh, base_mesh;
-    OpenMesh::IO::Options surface_mesh_io_opt;
-    OpenMesh::IO::Options base_mesh_io_opt(OpenMesh::IO::Options::VertexTexCoord);
+    TriMesh mesh_surface, mesh_target;
+    OpenMesh::IO::Options mesh_surface_io_opt;
+    OpenMesh::IO::Options mesh_target_io_opt(OpenMesh::IO::Options::VertexTexCoord);
 
     std::vector<std::thread> thread;
     try
     {
-        std::cout << "Loading: " << filename_base_mesh << '\n';
-        base_mesh.request_vertex_texcoords2D();
-        thread.push_back(std::thread([&] { 
-            OpenMesh::IO::read_mesh(base_mesh, filename_base_mesh, base_mesh_io_opt); 
+        std::cout << "Loading: " << filename_mesh_target << '\n';
+        mesh_target.request_vertex_texcoords2D();
+        thread.push_back(std::thread([&] {
+            OpenMesh::IO::read_mesh(mesh_target, filename_mesh_target, mesh_target_io_opt);
         }));
 
-        std::cout << "Loading: " << filename_surface_mesh << '\n';
+        std::cout << "Loading: " << filename_mesh_surface << '\n';
         thread.push_back(std::thread([&] {
-            OpenMesh::IO::read_mesh(surface_mesh, filename_surface_mesh, surface_mesh_io_opt);
+            OpenMesh::IO::read_mesh(mesh_surface, filename_mesh_surface, mesh_surface_io_opt);
         }));
     }
     catch (const std::exception &ex)
@@ -116,108 +284,28 @@ int main(int argc, char *argv[])
 
     tm_load_mesh.stop();
 
-    if (!base_mesh_io_opt.check(OpenMesh::IO::Options::VertexTexCoord))
+    if (!mesh_target_io_opt.check(OpenMesh::IO::Options::VertexTexCoord))
     {
         std::cerr << "Error: Base mesh must have uv coords" << std::endl;
         return EXIT_FAILURE;
     }
-    
-    
 
-    if (!surface_mesh_io_opt.check(OpenMesh::IO::Options::VertexNormal))
+    if (!mesh_surface_io_opt.check(OpenMesh::IO::Options::VertexNormal))
     {
-        std::cout << "surface_mesh does not have normals" << std::endl;
-        surface_mesh.request_vertex_normals();
-        surface_mesh.request_face_normals();
-        compute_vertex_normal(surface_mesh);
+        std::cout << "mesh_surface does not have normals" << std::endl;
+        mesh_surface.request_vertex_normals();
+        mesh_surface.request_face_normals();
+        compute_vertex_normal(mesh_surface);
     }
 
-    size_t n_intersections = 0;
-    auto vi_base = surface_mesh.vertices_begin();
-    for (auto vi_surf = surface_mesh.vertices_begin(); 
-        vi_surf != surface_mesh.vertices_end();
-        ++vi_surf, ++vi_base)
-    {
-        //std::cout << count++ << '/' << surface_mesh.n_vertices() << '\n';
-        
-        //for (auto fh = base_mesh.faces_begin(); fh != base_mesh.faces_end(); ++fh)
-        
-        bool has_intersection = false;
-        auto fh = base_mesh.faces_begin();
-        while(fh != base_mesh.faces_end() && !has_intersection)
-        {
-            const auto uv = base_mesh.texcoord2D(*vi_base);
-            const auto surf_point = surface_mesh.point(*vi_surf);
-            const auto surf_normal = surface_mesh.normal(*vi_surf);
-            const Vec3f orig(surf_point[0], surf_point[1], surf_point[2]);
-            const Vec3f dir(surf_normal[0], surf_normal[1], surf_normal[2]);
+    line_mesh_intersection(mesh_surface, mesh_target);
 
-            surface_mesh.set_point(*vi_surf, {uv[0], uv[1], surf_point[2]});
-            MyMesh::FaceVertexIter fv_it = base_mesh.fv_iter(*fh);
-            if (base_mesh.valence(*fh) == 3) // triangle
-            {
-                auto v0 = base_mesh.point(*fv_it);
-                auto v1 = base_mesh.point(*(++fv_it));
-                auto v2 = base_mesh.point(*(++fv_it));
-                decimal_t t, u, v;
-                if (rayTriangleIntersect(orig, dir, 
-                    {v0[0], v0[1], v0[2]}, 
-                    {v1[0], v1[1], v1[2]},
-                    {v2[0], v2[1], v2[2]}, 
-                    t, u, v))
-                {
-                    has_intersection = true;
-                    n_intersections++;
-                    surface_mesh.set_point(*vi_surf, {surf_point[0], surf_point[1], t});
-                    std::cout << "Vertex intersect " << vi_surf->idx() << '\t' << fh->idx() << std::endl;
-                }
-            }
-            else // quad
-            {
-                std::cout << "Malha quad????" << std::endl;
-                auto v0 = base_mesh.point(*fv_it);
-                auto v1 = base_mesh.point(*(++fv_it));
-                auto v2 = base_mesh.point(*(++fv_it));
-                auto v3 = base_mesh.point(*(++fv_it));
-                decimal_t t, u, v;
-                
-                if (rayTriangleIntersect(orig, dir, 
-                    {v0[0], v0[1], v0[2]}, 
-                    {v1[0], v1[1], v1[2]},
-                    {v2[0], v2[1], v2[2]}, 
-                    t, u, v))
-                {
-                    has_intersection = true;
-                    surface_mesh.set_point(*vi_surf, {surf_point[0], surf_point[1], t});
-                }
-                else if (rayTriangleIntersect(orig, dir, 
-                    {v1[0], v1[1], v1[2]},
-                    {v2[0], v2[1], v2[2]}, 
-                    {v3[0], v3[1], v3[2]}, 
-                    t, u, v))
-                {
-                    has_intersection = true;
-                    surface_mesh.set_point(*vi_surf, {surf_point[0], surf_point[1], t});
-                }
-            }
-
-            ++fh;
-        }
-
-        if (!has_intersection)
-        {
-            std::cout << "Vertex NOT intersect " << vi_surf->idx() << '\t' << surface_mesh.point(*vi_surf) << std::endl;
-        }
-    }
-
-    std::cout << "N intersections: " << n_intersections << std::endl;
-
-    save_points_obj(surface_mesh, filename_out);
-    // if (!OpenMesh::IO::write_mesh(surface_mesh, filename_out))
-	// {
-	// 	std::cerr << "Error: cannot write mesh to " << filename_out << std::endl;
-	// 	return false;
-	// }
+    save_points_obj(mesh_surface, filename_out);
+    // if (!OpenMesh::IO::write_mesh(mesh_surface, filename_out))
+    // {
+    // 	std::cerr << "Error: cannot write mesh to " << filename_out << std::endl;
+    // 	return false;
+    // }
 
     tm_total.stop();
     tm_load_mesh.print_interval("Loading meshes  : ");

@@ -24,6 +24,10 @@ if (NOT Threads_FOUND)
     message(Warning " Threads was not found. Some projects will not be built")
 endif()
 
+find_package(embree 3.0 REQUIRED)
+if (NOT Embree_FOUND)
+    message(Warning " Threads was not found. Some projects will not be built")
+endif()
 
 add_subdirectory(src/lib)
 add_subdirectory(src/app)
