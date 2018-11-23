@@ -96,6 +96,24 @@ if (OpenMesh_FOUND)
 endif()
 
 
+###########################################################################
+#
+# mba_mesh_z_app
+#
+if (OpenMesh_FOUND)
+	project(mba_mesh_z_app VERSION 0.1 LANGUAGES CXX)
+    add_executable(${PROJECT_NAME} mba_mesh_z_app.cpp)
+    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+    target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
+	set (LINK_LIBS ${OPENMESH_LIBRARIES} bspline_surface common mesh_utils nanoflann)
+    if (MSVC)
+        target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+    else()
+        target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} stdc++fs)
+    endif()
+endif()
+
+
 
 
 ###########################################################################
@@ -108,6 +126,23 @@ if (OpenMesh_FOUND)
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
     target_include_directories (${PROJECT_NAME} PRIVATE ${EMBREE_INCLUDE_DIRS} ${OPENMESH_INCLUDE_DIRS})
     set (LINK_LIBS ${EMBREE_LIBRARY} ${OPENMESH_LIBRARIES} common raytracing Threads::Threads)
+    if (MSVC)
+        target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+    else()
+        target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} stdc++fs)
+    endif()
+endif()
+
+###########################################################################
+#
+# blending_details_cdm
+#
+if (OpenMesh_FOUND)
+    project(blending_details_cdm VERSION 0.1 LANGUAGES CXX)
+    add_executable(${PROJECT_NAME} blending_details_cdm.cpp)
+    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+    target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
+    set (LINK_LIBS ${OPENMESH_LIBRARIES} common mesh_utils Threads::Threads)
     if (MSVC)
         target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
     else()

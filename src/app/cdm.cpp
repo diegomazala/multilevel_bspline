@@ -35,7 +35,7 @@ struct Triangle
     int v0, v1, v2;
 };
 
-void error_handler(void *userPtr, const RTCError code, const char *str)
+void error_handler(const RTCError code, const char *str)
 {
     if (code == RTC_ERROR_NONE)
         return;
@@ -129,19 +129,19 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
     RTCScene scene = nullptr;
 
     device = rtcNewDevice(nullptr);
-    error_handler(nullptr, rtcGetDeviceError(device), "Fail creating device");
+    error_handler(rtcGetDeviceError(device), "Fail creating device");
 
     scene = rtcNewScene(device);
-    error_handler(nullptr, rtcGetDeviceError(device), "Fail creating scene");
+    error_handler(rtcGetDeviceError(device), "Fail creating scene");
 
     timer tm_build_mesh;
     {
         RTCGeometry mesh_embree = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
         // add vertices
-        Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(mesh_embree, RTC_BUFFER_TYPE_VERTEX, 0,
-                                                             RTC_FORMAT_FLOAT3, sizeof(Vertex),
-                                                             mesh_target.n_vertices());
+        Vertex *vertices = reinterpret_cast<Vertex *>(
+            rtcSetNewGeometryBuffer(mesh_embree, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+                                    sizeof(Vertex), mesh_target.n_vertices()));
         std::size_t vInd = 0;
         for (auto vi = mesh_target.vertices_begin(); vi != mesh_target.vertices_end(); ++vi, ++vInd)
         {
@@ -149,13 +149,13 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
         }
 
         // add faces
-        Triangle *triangles = (Triangle *)rtcSetNewGeometryBuffer(
-            mesh_embree, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Triangle),
-            mesh_target.n_faces());
+        Triangle *triangles = reinterpret_cast<Triangle *>(
+            rtcSetNewGeometryBuffer(mesh_embree, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+                                    sizeof(Triangle), mesh_target.n_faces()));
         std::size_t fInd = 0;
         for (auto fi = mesh_target.faces_begin(); fi != mesh_target.faces_end(); ++fi, ++fInd)
         {
-            auto fv_it = mesh_target.fv_iter(fi);
+            auto fv_it = mesh_target.fv_iter(*fi);
             triangles[fInd].v0 = fv_it->idx();
             fv_it++;
             triangles[fInd].v1 = fv_it->idx();
@@ -164,12 +164,12 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
         }
 
         rtcCommitGeometry(mesh_embree);
-        unsigned int geomID = rtcAttachGeometry(scene, mesh_embree);
+        rtcAttachGeometry(scene, mesh_embree);
         rtcReleaseGeometry(mesh_embree);
     }
 
     rtcCommitScene(scene);
-    error_handler(nullptr, rtcGetDeviceError(device), "Fail committing scene");
+    error_handler(rtcGetDeviceError(device), "Fail committing scene");
 
     tm_build_mesh.stop();
 
@@ -212,18 +212,21 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
             if (hit.geomID == RTC_INVALID_GEOMETRY_ID)
             {
                 // std::cout << ray.tnear << ' ' << ray.tfar << std::endl;
-                // point[2] = 1;
+                point[2] = 0.0f;
             }
             else
             {
-                point += -(normal * ray.tfar);
+                //point += -(normal * ray.tfar);
+                point[2] = ray.tfar;
             }
         }
         else
         {
-            point += (normal * ray.tfar);
+            //point += (normal * ray.tfar);
+            point[2] = ray.tfar;
         }
 
+        
         mesh_base.set_point(*vi, point);
 
         // std::cout << ray.tnear << ' ' << ray.tfar << ' ' << ((hit.geomID ==
@@ -244,7 +247,7 @@ int main(int argc, char *argv[])
 
     if (argc != 3)
     {
-        std::cout << "Usage: app <mesh_surface_file> <target_mesh_file>\n"
+        std::cout << "Usage: app <target_mesh_file> <surface_mesh_file> \n"
                   << "Usage: app ../data/face_bsp.obj face.obj \n";
         return EXIT_FAILURE;
     }
@@ -252,7 +255,7 @@ int main(int argc, char *argv[])
     const std::string filename_mesh_target = argv[1];
     const std::string filename_mesh_surface = argv[2];
     const std::string filename_out =
-        fs::path(filename_mesh_surface).replace_extension("pts.obj").string();
+        fs::path(filename_mesh_surface).replace_extension("cdm.obj").string();
 
     timer tm_load_mesh;
     TriMesh mesh_surface, mesh_target;

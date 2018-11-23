@@ -51,7 +51,9 @@
         "tuple": "cpp",
         "typeinfo": "cpp",
         "utility": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "cstdarg": "cpp",
+        "strstream": "cpp"
     },
     "cppcheck.enable": true,
     "cppcheck.force": true,

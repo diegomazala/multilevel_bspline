@@ -319,6 +319,34 @@ void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<
 	}
 }
 
+void compute_vertex_normal(TriMesh &mesh)
+{
+    if (!mesh.has_vertex_normals())
+        mesh.request_vertex_normals();
+
+    if (!mesh.has_face_normals())
+        mesh.request_face_normals();
+
+    mesh.update_vertex_normals();
+    mesh.update_face_normals();
+
+    TriMesh::VertexIter v_it, v_end(mesh.vertices_end());
+    TriMesh::VertexFaceIter vf_it;
+    TriMesh::Normal tmp;
+    TriMesh::Scalar count;
+    for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
+    {
+        tmp[0] = tmp[1] = tmp[2] = 0.0;
+        count = 0.0;
+        for (vf_it = mesh.vf_iter(*v_it); vf_it.is_valid(); ++vf_it)
+        {
+            tmp += mesh.calc_face_normal(*vf_it);
+            ++count;
+        }
+        mesh.set_normal(*v_it, tmp / count);
+    }
+}
+
 template <typename mesh_t>
 bool save_points_obj(const mesh_t& mesh, const std::string& filename)
 {
