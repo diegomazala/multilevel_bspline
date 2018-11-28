@@ -132,6 +132,7 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
     error_handler(rtcGetDeviceError(device), "Fail creating device");
 
     scene = rtcNewScene(device);
+    rtcSetSceneFlags(scene, RTC_SCENE_FLAG_ROBUST);
     error_handler(rtcGetDeviceError(device), "Fail creating scene");
 
     timer tm_build_mesh;
@@ -183,50 +184,61 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
         auto &point = mesh_base.point(*vi);
         const auto &normal = mesh_base.normal(*vi);
 
-        RTCRayHit rayhit;
-        RTCRay &ray = rayhit.ray;
-        RTCHit &hit = rayhit.hit;
-        hit.geomID = RTC_INVALID_GEOMETRY_ID;
-        ray.org_x = point[0];
-        ray.org_y = point[1];
-        ray.org_z = point[2];
-        ray.dir_x = normal[0];
-        ray.dir_y = normal[1];
-        ray.dir_z = normal[2];
-        ray.tnear = 0.0f;
-        ray.tfar = 1.0f;
-        ray.time = 0.0f;
-        ray.id = RTC_INVALID_GEOMETRY_ID;
-
-        rtcIntersect1(scene, &context, &rayhit);
-
-        if (hit.geomID == RTC_INVALID_GEOMETRY_ID)
+        RTCRayHit rayhit[2];
+        for (auto &rh : rayhit)
         {
-            // invert direction
-            ray.dir_x = -normal[0];
-            ray.dir_y = -normal[1];
-            ray.dir_z = -normal[2];
+            auto &ray = rh.ray;
+            auto &hit = rh.hit;
+            ray.org_x = point[0];
+            ray.org_y = point[1];
+            ray.org_z = point[2];
+            hit.geomID = RTC_INVALID_GEOMETRY_ID;
+            ray.dir_x = normal[0];
+            ray.dir_y = normal[1];
+            ray.dir_z = normal[2];
+            ray.tnear = -0.001;
+            ray.tfar = 1.0f;
+            ray.time = 0.0f;
+            ray.id = RTC_INVALID_GEOMETRY_ID;
+        }
+        // invert ray
+        rayhit[1].ray.dir_x = -rayhit[1].ray.dir_x;
+        rayhit[1].ray.dir_y = -rayhit[1].ray.dir_y;
+        rayhit[1].ray.dir_z = -rayhit[1].ray.dir_z;
 
-            rtcIntersect1(scene, &context, &rayhit);
+        rtcIntersect1(scene, &context, &rayhit[0]);
+        rtcIntersect1(scene, &context, &rayhit[1]);
 
-            if (hit.geomID == RTC_INVALID_GEOMETRY_ID)
+        // Booth rays hit
+        if (rayhit[0].hit.geomID != RTC_INVALID_GEOMETRY_ID &&
+            rayhit[1].hit.geomID != RTC_INVALID_GEOMETRY_ID)
+        {
+            if (rayhit[0].ray.tfar < rayhit[1].ray.tfar)
             {
-                // std::cout << ray.tnear << ' ' << ray.tfar << std::endl;
-                point[2] = 0.0f;
+                point[2] = rayhit[0].ray.tfar;
             }
             else
             {
-                //point += -(normal * ray.tfar);
-                point[2] = ray.tfar;
+                point[2] = -rayhit[1].ray.tfar;
             }
         }
+        // Only first ray hit
+        else if (rayhit[0].hit.geomID != RTC_INVALID_GEOMETRY_ID)
+        {
+            point[2] = rayhit[0].ray.tfar;
+        }
+        // Only second ray hit
+        else if (rayhit[1].hit.geomID != RTC_INVALID_GEOMETRY_ID)
+        {
+            point[2] = -rayhit[1].ray.tfar;
+        }
+        // No hit
         else
         {
-            //point += (normal * ray.tfar);
-            point[2] = ray.tfar;
+            point[2] = 0.0f;
         }
 
-        
+
         mesh_base.set_point(*vi, point);
 
         // std::cout << ray.tnear << ' ' << ray.tfar << ' ' << ((hit.geomID ==
@@ -287,11 +299,11 @@ int main(int argc, char *argv[])
 
     tm_load_mesh.stop();
 
-    if (!mesh_target_io_opt.check(OpenMesh::IO::Options::VertexTexCoord))
-    {
-        std::cerr << "Error: Base mesh must have uv coords" << std::endl;
-        return EXIT_FAILURE;
-    }
+    // if (!mesh_target_io_opt.check(OpenMesh::IO::Options::VertexTexCoord))
+    // {
+    //     std::cerr << "Error: Base mesh must have uv coords" << std::endl;
+    //     return EXIT_FAILURE;
+    // }
 
     if (!mesh_surface_io_opt.check(OpenMesh::IO::Options::VertexNormal))
     {
