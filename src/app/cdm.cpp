@@ -196,7 +196,7 @@ void line_mesh_intersection(TriMesh &mesh_base, TriMesh &mesh_target)
             ray.dir_x = normal[0];
             ray.dir_y = normal[1];
             ray.dir_z = normal[2];
-            ray.tnear = -0.001;
+            ray.tnear = 0.0f;
             ray.tfar = 1.0f;
             ray.time = 0.0f;
             ray.id = RTC_INVALID_GEOMETRY_ID;
@@ -257,17 +257,17 @@ int main(int argc, char *argv[])
 {
     timer tm_total;
 
-    if (argc != 3)
+    if (argc < 3)
     {
-        std::cout << "Usage: app <target_mesh_file> <surface_mesh_file> \n"
+        std::cout << "Usage: app <target_mesh_file> <surface_mesh_file> <output_file>\n"
                   << "Usage: app ../data/face_bsp.obj face.obj \n";
         return EXIT_FAILURE;
     }
 
     const std::string filename_mesh_target = argv[1];
     const std::string filename_mesh_surface = argv[2];
-    const std::string filename_out =
-        fs::path(filename_mesh_surface).replace_extension("cdm.obj").string();
+    const std::string filename_out = ((argc > 3) ? argv[3] :
+        fs::path(filename_mesh_surface).replace_extension("cdm.obj").string());
 
     timer tm_load_mesh;
     TriMesh mesh_surface, mesh_target;
