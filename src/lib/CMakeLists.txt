@@ -61,7 +61,9 @@ set(COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common)
 set(LIB_NAME common)
 add_library(${LIB_NAME} INTERFACE)
 target_include_directories(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR})
-target_sources(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR}/timer.h)
+target_sources(${LIB_NAME} INTERFACE 
+    ${COMMON_INCLUDE_DIR}/timer.h
+    ${COMMON_INCLUDE_DIR}/cmdline.h)
 
 
 
