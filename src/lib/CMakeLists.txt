@@ -92,3 +92,18 @@ target_sources(${LIB_NAME} INTERFACE
     ${STB_IMAGE_INCLUDE_DIR}/stb_image.h
     ${STB_IMAGE_INCLUDE_DIR}/stb_image_write.h
     ${STB_IMAGE_INCLUDE_DIR}/stb_image_resize.h)
+
+
+
+###########################################################################
+#
+# tinyobj lib
+#
+set(COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyobj)
+set(LIB_NAME tinyobj)
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR})
+target_sources(${LIB_NAME} INTERFACE 
+    ${COMMON_INCLUDE_DIR}/tiny_obj_loader.h
+    ${COMMON_INCLUDE_DIR}/tiny_obj_loader.h
+	${COMMON_INCLUDE_DIR}/tinyobj.h)
