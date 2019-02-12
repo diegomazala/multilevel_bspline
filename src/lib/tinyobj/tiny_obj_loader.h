@@ -2101,7 +2101,6 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
         while (shape_it != shapes->end() && shape_it->name != shape.name) {
           ++shape_it;
         }
-
         if (shape_it == shapes->end()) 
 		{
           shapes->push_back(shape);
@@ -2159,7 +2158,18 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
       bool ret = exportGroupsToShape(&shape, faceGroup, lineGroup, tags,
                                      material, name, triangulate, v);
       if (ret) {
-        shapes->push_back(shape);
+		  auto shape_it = shapes->begin();
+		  while (shape_it != shapes->end() && shape_it->name != shape.name) {
+			  ++shape_it;
+		  }
+		  if (shape_it == shapes->end())
+		  {
+			  shapes->push_back(shape);
+		  }
+		  else
+		  {
+			  *shape_it = mergeShapes(*shape_it, shape);
+		  }
       }
 
       // material = -1;
@@ -2300,8 +2310,20 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
   // line.
   // we also add `shape` to `shapes` when `shape.mesh` has already some
   // faces(indices)
-  if (ret || shape.mesh.indices.size()) {
-    shapes->push_back(shape);
+  if (ret || shape.mesh.indices.size()) 
+  {
+	  auto shape_it = shapes->begin();
+	  while (shape_it != shapes->end() && shape_it->name != shape.name) {
+		  ++shape_it;
+	  }
+	  if (shape_it == shapes->end())
+	  {
+		  shapes->push_back(shape);
+	  }
+	  else
+	  {
+		  *shape_it = mergeShapes(*shape_it, shape);
+	  }
   }
   faceGroup.clear();  // for safety
 
