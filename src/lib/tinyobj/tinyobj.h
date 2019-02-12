@@ -108,16 +108,16 @@ namespace tinyobj
 
 			//save_material(scene, material_filename);
 
-			out << std::fixed;
-			//	<< "###############################"
-			//	<< "\n## Vertex Count    : " << scene.attrib.vertices.size()
-			//	<< "\n## Normal Count    : " << scene.attrib.normals.size()
-			//	<< "\n## TexCoord Count  : " << scene.attrib.texcoords.size()
-			//	<< "\n## Color Count     : " << scene.attrib.colors.size()
-			//	<< "\n## Material Count  : " << scene.materials.size()
-			//	<< "\n###############################\n"
-			//	<< "\nmatlib " << filename_without_dir << ".mtl\n"
-			//	<< std::endl;
+			out << std::fixed
+				<< "###############################"
+				<< "\n## Vertex Count    : " << scene.attrib.vertices.size()
+				<< "\n## Normal Count    : " << scene.attrib.normals.size()
+				<< "\n## TexCoord Count  : " << scene.attrib.texcoords.size()
+				<< "\n## Color Count     : " << scene.attrib.colors.size()
+				<< "\n## Material Count  : " << scene.materials.size()
+				<< "\n###############################\n"
+				<< "\nmatlib " << filename_without_dir << ".mtl\n"
+				<< std::endl;
 
 			
 			for (auto i = 0; i < scene.attrib.vertices.size(); i+=3)
@@ -135,17 +135,21 @@ namespace tinyobj
 				out << "vt " << scene.attrib.texcoords[i] << ' ' << scene.attrib.texcoords[i + 1] << '\n';
 			}
 
-#if 1
+
 			// for each shape (group)
-			for (auto& shape : scene.shapes)
+			for (const auto& shape : scene.shapes)
 			{
 				const auto& mesh = shape.mesh;
 				
-				//out << "\n###############################"
-				//	<< "\nusemtl " << scene.materials[shape.mesh.material_ids[0]].name
-				//	<< "\ng " << (!shape.name.empty() ? shape.name : "no_name") << std::endl;
+				out << "\n###############################";
+				if (shape.mesh.material_ids.size() > 0 && scene.materials.size() > shape.mesh.material_ids[0])
+				{
+					out << "\nusemtl " << scene.materials[shape.mesh.material_ids[0]].name;
+				}
+				out << "\ng " << (!shape.name.empty() ? shape.name : "no_name") << std::endl;
 
 				size_t index_offset = 0;
+
 
 				// for each face
 				for (auto f = 0; f < shape.mesh.num_face_vertices.size(); ++f)
@@ -173,9 +177,9 @@ namespace tinyobj
 					out << '\n';
 					index_offset += verts_per_face;
 				}
+
 			}
 
-#endif
 			out.close();
 			return true;
 		}
@@ -194,13 +198,17 @@ namespace tinyobj
 			<< "\nVertex Count    : " << scene.attrib.vertices.size() / 3
 			<< "\nNormal Count    : " << scene.attrib.normals.size() / 3
 			<< "\nTexCoord Count  : " << scene.attrib.texcoords.size() / 2
-			<< "\nColors Count    : " << scene.attrib.colors.size() / 3
+			<< "\nColors Count    : " << scene.attrib.colors.size()
 			<< "\nMaterial Count  : " << scene.materials.size()
 			<< "\nShapes          : " << scene.materials.size();
+		    
+	
 
 		for (const auto& shape : scene.shapes)
 		{
-			std::cout << "\n\t -- " << shape.name;
+			std::cout
+				<< "\n                  - [" << shape.name
+				<< "] " << shape.mesh.indices.size() / shape.mesh.num_face_vertices[0];
 		}
 	
 		std::cout << "\n================" << std::endl;
@@ -233,6 +241,7 @@ namespace tinyobj
 			if (vert_freq[i] == 0)
 				continue;
 			
+			const auto i2 = i * 2;
 			const auto i3 = i * 3;
 
 			vertices.push_back(in.attrib.vertices[i3]);
@@ -248,9 +257,21 @@ namespace tinyobj
 			
 			if (in.attrib.texcoords.size() > 0 && in.attrib.texcoords.size() == in.attrib.vertices.size())
 			{
-				texcoords.push_back(in.attrib.texcoords[i * 2]);
-				texcoords.push_back(in.attrib.texcoords[i * 2 + 1]);
+				texcoords.push_back(in.attrib.texcoords[max(i2 + 0, in.attrib.texcoords.size() - 1)]);
+				texcoords.push_back(in.attrib.texcoords[max(i2 + 1, in.attrib.texcoords.size() - 1)]);
 			}
+		}
+
+		if (in.attrib.normals.size() != normals.size())
+		{
+			normals.clear();
+			std::copy(in.attrib.normals.begin(), in.attrib.normals.end(), normals.begin());
+		}
+
+		if (in.attrib.texcoords.size() != in.attrib.vertices.size())
+		{
+			texcoords.clear();
+			texcoords.insert(texcoords.begin(), in.attrib.texcoords.begin(), in.attrib.texcoords.end());
 		}
 
 		int zero_count = 0;
