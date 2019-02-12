@@ -33,7 +33,10 @@ int main(int argc, char* argv[])
 	auto success_saving = tinyobj::save(scene_out, filename_out);
 
 	if (!success_saving)
+	{
+		std::cerr << "[Error] Saving obj file : " << filename_out << std::endl;
 		return EXIT_FAILURE;
+	}
 
 	std::cout << "---- x ----" << std::endl;
 

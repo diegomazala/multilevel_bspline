@@ -73,7 +73,7 @@ namespace tinyobj
 			{
 				out << std::fixed
 					<< "\nnewmtl " << mat.name
-					<< "\nmapKd " << mat.diffuse_texname
+					<< "\nmap_Kd " << mat.diffuse_texname
 					<< "\nKa " << mat.ambient[0] << ' ' << mat.ambient[1] << ' ' << mat.ambient[2]
 					<< "\nKd " << mat.diffuse[0] << ' ' << mat.diffuse[1] << ' ' << mat.diffuse[2]
 					<< "\nKs " << mat.specular[0] << ' ' << mat.specular[1] << ' ' << mat.specular[2]
@@ -106,7 +106,7 @@ namespace tinyobj
 			const auto dir = filename.substr(0, last_slash);
 			const std::string material_filename = dir + '/' + filename_without_dir + ".mtl";
 
-			//save_material(scene, material_filename);
+			save_material(scene, material_filename);
 
 			out << std::fixed
 				<< "###############################"
@@ -116,7 +116,7 @@ namespace tinyobj
 				<< "\n## Color Count     : " << scene.attrib.colors.size()
 				<< "\n## Material Count  : " << scene.materials.size()
 				<< "\n###############################\n"
-				<< "\nmatlib " << filename_without_dir << ".mtl\n"
+				<< "\nmtllib " << filename_without_dir << ".mtl\n"
 				<< std::endl;
 
 			
@@ -135,18 +135,19 @@ namespace tinyobj
 				out << "vt " << scene.attrib.texcoords[i] << ' ' << scene.attrib.texcoords[i + 1] << '\n';
 			}
 
+			out << std::endl;
 
 			// for each shape (group)
+			std::size_t matidx = 0;
 			for (const auto& shape : scene.shapes)
 			{
 				const auto& mesh = shape.mesh;
 				
-				out << "\n###############################";
-				if (shape.mesh.material_ids.size() > 0 && scene.materials.size() > shape.mesh.material_ids[0])
-				{
-					out << "\nusemtl " << scene.materials[shape.mesh.material_ids[0]].name;
-				}
-				out << "\ng " << (!shape.name.empty() ? shape.name : "no_name") << std::endl;
+				const auto mat_name = (scene.materials.size() > 0 ? scene.materials[matidx++ % scene.materials.size()].name : "default");
+
+				out << "\n###############################"
+					<< "\nusemtl " << mat_name
+					<< "\ng " << (!shape.name.empty() ? shape.name : "no_name") << std::endl;
 
 				size_t index_offset = 0;
 
@@ -164,7 +165,7 @@ namespace tinyobj
 						out << ' ' << idx.vertex_index + 1;
 						if (idx.texcoord_index > -1)
 						{
-							out << '/' << idx.vertex_index + 1;
+							out << '/' << idx.texcoord_index + 1;
 							if (idx.normal_index > -1)
 								out << '/' << idx.normal_index + 1;
 						}
@@ -216,6 +217,8 @@ namespace tinyobj
 
 	static void garbage_collect(scene_t& out, const scene_t& in)
 	{
+		out.materials = in.materials;
+
 		std::vector<tinyobj::real_t>& vertices = out.attrib.vertices;
 		std::vector<tinyobj::real_t>& normals = out.attrib.normals;
 		std::vector<tinyobj::real_t>& texcoords = out.attrib.texcoords;
@@ -224,6 +227,7 @@ namespace tinyobj
 		texcoords.clear();
 
 		std::vector<int> vert_freq(in.attrib.vertices.size() / 3, 0);
+		std::vector<int> texcoord_freq(in.attrib.texcoords.size() / 2, 0);
 
 		// count the amount of vertices which are not used
 		for (const auto& shape : in.shapes)
@@ -232,6 +236,7 @@ namespace tinyobj
 			for (const auto& ind : mesh.indices)
 			{
 				vert_freq[ind.vertex_index]++;
+				texcoord_freq[ind.texcoord_index]++;
 			}
 		}
 
@@ -241,49 +246,46 @@ namespace tinyobj
 			if (vert_freq[i] == 0)
 				continue;
 			
-			const auto i2 = i * 2;
 			const auto i3 = i * 3;
 
 			vertices.push_back(in.attrib.vertices[i3]);
 			vertices.push_back(in.attrib.vertices[i3 + 1]);
 			vertices.push_back(in.attrib.vertices[i3 + 2]);
-			
-			if (in.attrib.normals.size() > 0 && in.attrib.normals.size() == in.attrib.vertices.size())
-			{
-				normals.push_back(in.attrib.normals[i3]);
-				normals.push_back(in.attrib.normals[i3 + 1]);
-				normals.push_back(in.attrib.normals[i3 + 2]);
-			}
-			
-			if (in.attrib.texcoords.size() > 0 && in.attrib.texcoords.size() == in.attrib.vertices.size())
-			{
-				texcoords.push_back(in.attrib.texcoords[max(i2 + 0, in.attrib.texcoords.size() - 1)]);
-				texcoords.push_back(in.attrib.texcoords[max(i2 + 1, in.attrib.texcoords.size() - 1)]);
-			}
 		}
 
-		if (in.attrib.normals.size() != normals.size())
+		// copy the used texcoords to a new vector
+		for (int i = 0; i < texcoord_freq.size(); i++)
 		{
-			normals.clear();
-			std::copy(in.attrib.normals.begin(), in.attrib.normals.end(), normals.begin());
+			if (texcoord_freq[i] == 0)
+				continue;
+
+			const auto i2 = i * 2;
+
+			texcoords.push_back(in.attrib.texcoords[i2]);
+			texcoords.push_back(in.attrib.texcoords[i2 + 1]);
 		}
 
-		if (in.attrib.texcoords.size() != in.attrib.vertices.size())
-		{
-			texcoords.clear();
-			texcoords.insert(texcoords.begin(), in.attrib.texcoords.begin(), in.attrib.texcoords.end());
-		}
 
-		int zero_count = 0;
+		int zero_count_vert = 0;
 		for (int i = 0; i < vert_freq.size(); i++)
 		{
 			if (vert_freq[i] == 0)
-				zero_count++;
+				zero_count_vert++;
 
-			vert_freq[i] = zero_count;
+			vert_freq[i] = zero_count_vert;
 		}
 
-		std::cout << "[Info] The number of unused vertices is " << zero_count << std::endl;
+		int zero_count_texcoord = 0;
+		for (int i = 0; i < texcoord_freq.size(); i++)
+		{
+			if (texcoord_freq[i] == 0)
+				zero_count_texcoord++;
+
+			texcoord_freq[i] = zero_count_texcoord;
+		}
+
+		std::cout << "[Info] The number of unused vertices is " << zero_count_vert << std::endl;
+		std::cout << "[Info] The number of unused texcoord is " << zero_count_texcoord << std::endl;
 
 		// for each shape
 		out.shapes = in.shapes;
@@ -291,10 +293,11 @@ namespace tinyobj
 		{
 			for (auto& idx : shape.mesh.indices)
 			{
-				auto replace = vert_freq[idx.vertex_index];
-				idx.vertex_index -= replace;
-				idx.normal_index -= replace;
-				idx.texcoord_index -= replace;
+				auto replace_vert = vert_freq[idx.vertex_index];
+				auto replace_texcoord = texcoord_freq[idx.texcoord_index];
+				idx.vertex_index -= replace_vert;
+				idx.normal_index = -1;
+				idx.texcoord_index -= replace_texcoord;
 			}
 		}
 	}
