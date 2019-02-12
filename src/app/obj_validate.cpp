@@ -20,7 +20,10 @@ int main(int argc, char* argv[])
 	auto success_loading = tinyobj::load(scene, filename_in);
 
 	if (!success_loading)
+	{
+		std::cerr << "[Error] Loading obj file : " << filename_in << std::endl;
 		return EXIT_FAILURE;
+	}
 
 	tinyobj::print_info(scene);
 

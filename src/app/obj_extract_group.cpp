@@ -22,7 +22,11 @@ int main(int argc, char* argv[])
 	auto success_loading = tinyobj::load(scene, filename_in);
 
 	if (!success_loading)
+	{
+		std::cerr << "[Error] Loading obj file : " << filename_in << std::endl;
 		return EXIT_FAILURE;
+	}
+
 		
 	tinyobj::print_info(scene);
 
@@ -35,8 +39,10 @@ int main(int argc, char* argv[])
 	auto success_saving = tinyobj::save(scene_out, filename_out);
 
 	if (!success_saving)
+	{
+		std::cerr << "[Error] Saving obj file : " << filename_out << std::endl;
 		return EXIT_FAILURE;
-
+	}
 
 	return EXIT_SUCCESS;
 }

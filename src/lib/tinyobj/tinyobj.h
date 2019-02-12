@@ -137,6 +137,7 @@ namespace tinyobj
 
 			out << std::endl;
 
+
 			// for each shape (group)
 			std::size_t matidx = 0;
 			for (const auto& shape : scene.shapes)
@@ -163,6 +164,7 @@ namespace tinyobj
 					{
 						tinyobj::index_t idx = shape.mesh.indices[index_offset + v];
 						out << ' ' << idx.vertex_index + 1;
+
 						if (idx.texcoord_index > -1)
 						{
 							out << '/' << idx.texcoord_index + 1;
@@ -203,8 +205,6 @@ namespace tinyobj
 			<< "\nMaterial Count  : " << scene.materials.size()
 			<< "\nShapes          : " << scene.materials.size();
 		    
-	
-
 		for (const auto& shape : scene.shapes)
 		{
 			std::cout
@@ -304,6 +304,8 @@ namespace tinyobj
 
 	static bool extract_group(scene_t& out, const std::string& group_name, const scene_t& in)
 	{
+		out.materials = in.materials;
+
 		std::vector<tinyobj::real_t>& vertices = out.attrib.vertices;
 		std::vector<tinyobj::real_t>& normals = out.attrib.normals;
 		std::vector<tinyobj::real_t>& texcoords = out.attrib.texcoords;
@@ -311,9 +313,7 @@ namespace tinyobj
 		vertices.clear();
 		normals.clear();
 		texcoords.clear();
-
-		std::vector<int> vert_freq(in.attrib.vertices.size() / 3, 0);
-
+				
 		auto shape = in.shapes.begin();
 
 		while (shape != in.shapes.end() && shape->name != group_name)
@@ -327,10 +327,14 @@ namespace tinyobj
 			return false;
 		}
 
+		std::vector<int> vert_freq(in.attrib.vertices.size() / 3, 0);
+		std::vector<int> texcoord_freq(in.attrib.texcoords.size() / 2, 0);
+
 		const auto& mesh = shape->mesh;
 		for (const auto& ind : mesh.indices)
 		{
 			vert_freq[ind.vertex_index]++;
+			texcoord_freq[ind.texcoord_index]++;
 		}
 
 		// copy the used vertices to a new vector
@@ -338,22 +342,53 @@ namespace tinyobj
 		{
 			if (vert_freq[i] == 0)
 				continue;
-			vertices.push_back(in.attrib.vertices[i]);
 
-			if (in.attrib.normals.size() > 0)
-				normals.push_back(in.attrib.normals[i]);
+			const auto i3 = i * 3;
 
-			if (in.attrib.texcoords.size() > 0)
-				texcoords.push_back(in.attrib.texcoords[i]);
+			vertices.push_back(in.attrib.vertices[i3]);
+			vertices.push_back(in.attrib.vertices[i3 + 1]);
+			vertices.push_back(in.attrib.vertices[i3 + 2]);
+		}
+
+		// copy the used texcoords to a new vector
+		for (int i = 0; i < texcoord_freq.size(); i++)
+		{
+			if (texcoord_freq[i] == 0)
+				continue;
+
+			const auto i2 = i * 2;
+
+			texcoords.push_back(in.attrib.texcoords[i2]);
+			texcoords.push_back(in.attrib.texcoords[i2 + 1]);
+		}
+
+
+		int zero_count_vert = 0;
+		for (int i = 0; i < vert_freq.size(); i++)
+		{
+			if (vert_freq[i] == 0)
+				zero_count_vert++;
+
+			vert_freq[i] = zero_count_vert;
+		}
+
+		int zero_count_texcoord = 0;
+		for (int i = 0; i < texcoord_freq.size(); i++)
+		{
+			if (texcoord_freq[i] == 0)
+				zero_count_texcoord++;
+
+			texcoord_freq[i] = zero_count_texcoord;
 		}
 
 		out.shapes = { *shape };
 		for (auto& idx : out.shapes[0].mesh.indices)
 		{
-			auto replace = vert_freq[idx.vertex_index];
-			idx.vertex_index -= replace;
-			idx.normal_index -= replace;
-			idx.texcoord_index -= replace;
+			auto replace_vert = vert_freq[idx.vertex_index];
+			auto replace_texcoord = texcoord_freq[idx.texcoord_index];
+			idx.vertex_index -= replace_vert;
+			idx.normal_index = -1;
+			idx.texcoord_index -= replace_texcoord;
 		}
 
 		return true;
