@@ -119,11 +119,22 @@ namespace tinyobj
 				<< "\nmtllib " << filename_without_dir << ".mtl\n"
 				<< std::endl;
 
-			
-			for (auto i = 0; i < scene.attrib.vertices.size(); i+=3)
+			if (scene.attrib.colors.size() > 0)
 			{
-				out << "v " << scene.attrib.vertices[i] << ' ' << scene.attrib.vertices[i + 1] << ' ' << scene.attrib.vertices[i + 2] << '\n';
+				for (auto i = 0; i < scene.attrib.vertices.size(); i += 3)
+				{
+					out << "v " << scene.attrib.vertices[i] << ' ' << scene.attrib.vertices[i + 1] << ' ' << scene.attrib.vertices[i + 2]
+						<< ' ' << scene.attrib.colors[i] << ' ' << scene.attrib.colors[i + 1] << ' ' << scene.attrib.colors[i + 2] << '\n';
+				}
 			}
+			else
+			{
+				for (auto i = 0; i < scene.attrib.vertices.size(); i += 3)
+				{
+					out << "v " << scene.attrib.vertices[i] << ' ' << scene.attrib.vertices[i + 1] << ' ' << scene.attrib.vertices[i + 2] << '\n';
+				}
+			}
+
 
 			for (auto i = 0; i < scene.attrib.normals.size(); i += 3)
 			{

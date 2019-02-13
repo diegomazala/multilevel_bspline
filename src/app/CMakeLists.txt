@@ -215,9 +215,7 @@ endif()
 project(obj_validate)
 add_executable(${PROJECT_NAME} obj_validate.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
-set (LINK_LIBS ${OPENMESH_LIBRARIES} tinyobj)
-target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+target_link_libraries(${PROJECT_NAME} tinyobj)
 
 
 
@@ -228,6 +226,15 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 project(obj_extract_group)
 add_executable(${PROJECT_NAME} obj_extract_group.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
-set (LINK_LIBS ${OPENMESH_LIBRARIES} tinyobj)
-target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+target_link_libraries(${PROJECT_NAME} tinyobj)
+
+
+
+###########################################################################
+#
+# obj_diff
+#
+project(obj_diff)
+add_executable(${PROJECT_NAME} obj_diff.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj Threads::Threads)

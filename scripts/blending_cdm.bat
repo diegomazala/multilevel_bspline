@@ -1,8 +1,8 @@
 echo off
 set blending_cdm="E:/Projects/DSc/multilevel_bspline/msvc/bin/Release/blending_details_cdm.exe" 
 
-set path_cdm=E:/GDrive/Shared/Data/Figs/cdm/
-set path_out=E:/GDrive/Shared/Data/Figs/blending_cdm/
+set path_cdm=E:/GDrive/Shared/Data/FigsHigh/cdm/
+set path_out=E:/GDrive/Shared/Data/FigsHigh/blending_cdm/
 
 :: -- Base: Fig_03  Details: Fig_02  Sd: 02  Cdm: 03
 %blending_cdm% %path_cdm%fig03_sd_2.obj %path_cdm%fig03_cdm_3.obj %path_cdm%fig02_sd_2.obj %path_cdm%fig02_sd_3.obj %path_cdm%fig02_cdm_3.obj 0.00 1.00 %path_out%fig_3_2_cdm_3_000_100.obj
