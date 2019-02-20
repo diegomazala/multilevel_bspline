@@ -7,9 +7,9 @@
 #include <timer.h>
 
 
-template <typename decimal_t>
+template <typename decimal_t, typename mesh_t>
 void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, int knn_search_checks,
-                               TriMesh &mesh)
+                               mesh_t &mesh)
 {
     // if set to 3, it will present wrong z coords for the neighbors
     // I don't know the reason. I have to check
@@ -71,9 +71,10 @@ void create_3d_control_lattice(TriMesh &grid, int m, int n, int kdtree_count, in
 
 
 
-template <typename decimal_t>
-std::vector<std::array<decimal_t, 3>>
-compute_control_points(const TriMesh &mesh, size_t rows, size_t cols, int kdtree_count = 10, int knn_search_checks = 16)
+template <typename decimal_t, typename mesh_t>
+std::vector<std::array<decimal_t, 3>> compute_control_points(const mesh_t &mesh, size_t rows,
+                                                             size_t cols, int kdtree_count = 10,
+                                                             int knn_search_checks = 16)
 {
     constexpr int dimension = 2;
 

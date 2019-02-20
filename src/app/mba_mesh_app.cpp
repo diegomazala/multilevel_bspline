@@ -28,13 +28,17 @@ int main(int argc, char *argv[])
                                          argv[3]),
         "mba");
 
-    TriMesh mesh;
+    Mesh_t mesh;
+    //TriMesh mesh;
     timer tm_load_mesh;
     if (!load_mesh(mesh, filename_in))
     {
         std::cout << "Could not read " << filename_in << std::endl;
         return EXIT_FAILURE;
     }
+
+
+    mesh.garbage_collection();
     tm_load_mesh.stop();
 
     //
@@ -51,6 +55,7 @@ int main(int argc, char *argv[])
         compute_control_points<decimal_t>(mesh, n + 3, m + 3, kdtree_count, knn_search_checks);
     tm_build_control_lattice.stop();
 
+	
     //
     // build data arrays
     //
@@ -62,6 +67,15 @@ int main(int argc, char *argv[])
     std::vector<decimal_t> v_array(mesh.n_vertices(), 0);
     mesh_uv_to_vecs(mesh, x, y, z, u_array, v_array);
     tm_copy_data_arrays.stop();
+
+	//for (auto i = 0; i < mesh.n_vertices(); ++i)
+ //   {
+ //       std::cout << std::fixed << x[i] << ' ' << y[i] << ' ' << z[i] << ' ' << u_array[i] << ' '
+ //                 << v_array[i] << std::endl;
+ //   }
+
+ //   std::cout << "--x--" << std::endl;
+ //   exit(0);
 
     //
     // construct the surface function

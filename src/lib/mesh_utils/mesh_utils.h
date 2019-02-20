@@ -240,8 +240,8 @@ static void mesh_to_vecs(TriMesh &mesh, std::shared_ptr<std::vector<decimal>> U,
 }
 
 
-template <typename scalar_t>
-void mesh_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<scalar_t>& y, std::vector<scalar_t>& z)
+template <typename scalar_t, typename mesh_t>
+void mesh_to_vecs(const mesh_t& mesh, std::vector<scalar_t>& x, std::vector<scalar_t>& y, std::vector<scalar_t>& z)
 {
     if (x.size() != mesh.n_vertices())
         x.resize(mesh.n_vertices());
@@ -264,8 +264,8 @@ void mesh_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<sca
 
 
 
-template <typename scalar_t>
-void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& u, std::vector<scalar_t>& v, std::vector<scalar_t>& z)
+template <typename scalar_t, typename mesh_t>
+void mesh_uv_to_vecs(const mesh_t& mesh, std::vector<scalar_t>& u, std::vector<scalar_t>& v, std::vector<scalar_t>& z)
 {
     if (u.size() != mesh.n_vertices())
         u.resize(mesh.n_vertices());
@@ -287,8 +287,9 @@ void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& u, std::vector<
 	}
 }
 
-template <typename scalar_t>
-void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<scalar_t>& y, std::vector<scalar_t>& z, 
+template <typename scalar_t, typename mesh_t>
+void mesh_uv_to_vecs(const mesh_t &mesh, std::vector<scalar_t> &x, std::vector<scalar_t> &y,
+                     std::vector<scalar_t> &z, 
                     std::vector<scalar_t>& u, std::vector<scalar_t>& v)
 {
     if (x.size() != mesh.n_vertices())
@@ -319,7 +320,8 @@ void mesh_uv_to_vecs(const TriMesh& mesh, std::vector<scalar_t>& x, std::vector<
 	}
 }
 
-void compute_vertex_normal(TriMesh &mesh)
+template <typename mesh_t>
+void compute_vertex_normal(mesh_t &mesh)
 {
     if (!mesh.has_vertex_normals())
         mesh.request_vertex_normals();
@@ -330,10 +332,10 @@ void compute_vertex_normal(TriMesh &mesh)
     mesh.update_vertex_normals();
     mesh.update_face_normals();
 
-    TriMesh::VertexIter v_it, v_end(mesh.vertices_end());
-    TriMesh::VertexFaceIter vf_it;
-    TriMesh::Normal tmp;
-    TriMesh::Scalar count;
+	mesh_t::VertexIter v_it, v_end(mesh.vertices_end());
+	mesh_t::VertexFaceIter vf_it;
+	mesh_t::Normal tmp;
+	mesh_t::Scalar count;
     for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
     {
         tmp[0] = tmp[1] = tmp[2] = 0.0;
@@ -388,3 +390,4 @@ bool save_points_obj(const std::vector<std::array<decimal_t, 3>>& points, const 
         return false;
     }   
 }
+

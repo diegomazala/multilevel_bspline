@@ -50,6 +50,7 @@ static auto get_heat_map_rgb(float value)
 	return rgb;
 }
 
+
 int main(int argc, char* argv[]) 
 { 
 	if (argc < 3)
@@ -151,8 +152,6 @@ int main(int argc, char* argv[])
 	}
 
 	std::cout << "---- x ----" << std::endl;
-
-
 
 	return EXIT_SUCCESS;
 }
