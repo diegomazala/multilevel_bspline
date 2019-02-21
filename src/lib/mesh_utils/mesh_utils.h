@@ -109,13 +109,14 @@ static bool save_mesh(const mesh_t &mesh, const std::string &filename)
     }
 }
 
-static std::tuple<TriMesh::Point, TriMesh::Point>
-mesh_bounding_box(const TriMesh &mesh)
+
+static std::tuple<Mesh_t::Point, Mesh_t::Point>
+mesh_bounding_box(const Mesh_t &mesh)
 {
-	TriMesh::Point min_vert = {std::numeric_limits<TriMesh::Scalar>::max(),
+	Mesh_t::Point min_vert = {std::numeric_limits<TriMesh::Scalar>::max(),
                                 std::numeric_limits<TriMesh::Scalar>::max(),
                                 std::numeric_limits<TriMesh::Scalar>::max()};
-	TriMesh::Point max_vert = {std::numeric_limits<TriMesh::Scalar>::min(),
+	Mesh_t::Point max_vert = {std::numeric_limits<TriMesh::Scalar>::min(),
                                 std::numeric_limits<TriMesh::Scalar>::min(),
                                 std::numeric_limits<TriMesh::Scalar>::min()};
 
@@ -133,38 +134,38 @@ mesh_bounding_box(const TriMesh &mesh)
     return std::make_tuple(min_vert, max_vert);
 }
 
-static TriMesh::Point
-center_of_bounding_box(const TriMesh::Point &min_corner,
-                       const TriMesh::Point &max_corner)
+static Mesh_t::Point
+center_of_bounding_box(const Mesh_t::Point &min_corner,
+                       const Mesh_t::Point &max_corner)
 {
     return {min_corner[0] + ((max_corner[0] - min_corner[0]) * 0.5f),
             min_corner[1] + ((max_corner[1] - min_corner[1]) * 0.5f),
             min_corner[2] + ((max_corner[2] - min_corner[2]) * 0.5f)};
 }
 
-static TriMesh::Scalar max_range_of_bounding_box(const TriMesh::Point &min_corner,
-                                       const TriMesh::Point &max_corner)
+static Mesh_t::Scalar max_range_of_bounding_box(const Mesh_t::Point &min_corner,
+                                       const Mesh_t::Point &max_corner)
 {
-    std::vector<TriMesh::Scalar> range = {max_corner[0] - min_corner[0],
+    std::vector<Mesh_t::Scalar> range = {max_corner[0] - min_corner[0],
                                 max_corner[1] - min_corner[1],
                                 max_corner[2] - min_corner[2]};
     return *std::max_element(range.begin(), range.end());
 }
 
-static void normalize_mesh(TriMesh &mesh, const TriMesh::Point &center,
-                           TriMesh::Scalar scale)
+static void normalize_mesh(Mesh_t &mesh, const Mesh_t::Point &center, Mesh_t::Scalar scale)
 {
     for (auto vi = mesh.vertices_begin(); vi != mesh.vertices_end(); ++vi)
     {
         auto point = mesh.point(*vi);
         point -= center;
         point /= scale;
-        point += TriMesh::Point(0.5f, 0.5f, 0.5f);
+        point += Mesh_t::Point(0.5f, 0.5f, 0.5f);
         mesh.set_point(*vi, point);
     }
 }
 
-void normalize_mesh(TriMesh &mesh)
+template <typename mesh_t>
+void normalize_mesh(mesh_t &mesh)
 {
     auto [min_corner, max_corner] = mesh_bounding_box(mesh);
     auto scale = max_range_of_bounding_box(min_corner, max_corner);
@@ -289,7 +290,7 @@ void mesh_uv_to_vecs(const mesh_t& mesh, std::vector<scalar_t>& u, std::vector<s
 
 template <typename scalar_t, typename mesh_t>
 void mesh_uv_to_vecs(const mesh_t &mesh, std::vector<scalar_t> &x, std::vector<scalar_t> &y,
-                     std::vector<scalar_t> &z, 
+                     std::vector<scalar_t> &z, std::vector<uint8_t> &is_boundary,
                     std::vector<scalar_t>& u, std::vector<scalar_t>& v)
 {
     if (x.size() != mesh.n_vertices())
@@ -315,6 +316,7 @@ void mesh_uv_to_vecs(const mesh_t &mesh, std::vector<scalar_t> &x, std::vector<s
         x[i] = _point[0];
         y[i] = _point[1];
         z[i] = _point[2];
+		is_boundary[i] = mesh.is_boundary(*vi) ? 1 : 0;
         u[i] = _uv[0];
         v[i] = _uv[1];
 	}

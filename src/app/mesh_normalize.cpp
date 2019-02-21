@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	const std::string filename_in = argv[1];
 	const std::string filename_out = (argc > 2) ? argv[2] : filename_append_before_extension(filename_in, "norm");
 
-	TriMesh mesh;
+	Mesh_t mesh;
 	if (!load_mesh(mesh, filename_in))
 	{
 		std::cout << "Could not read " << filename_in << std::endl;
