@@ -203,7 +203,7 @@ void CotanWeight(PolyMesh &mesh)
     }
 }
 
-void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N)
+void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_border = false)
 {
     /////////////////////////////////////////////////////////
     // mode 1 = Laplacian smoothing                        //
@@ -240,6 +240,9 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N)
 
         for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
         {
+			if (fix_border && mesh.is_boundary(v_it))
+				continue;
+
             cog[0] = cog[1] = cog[2] = valence = 0.0;
 
             // iterate over all neighboring vertices
@@ -274,7 +277,7 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N)
             mesh.property(cogs, *v_it) = tmp;
         }
         for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
-            if (!mesh.is_boundary(*v_it))
+            if (!(fix_border && mesh.is_boundary(*v_it)))
                 mesh.set_point(*v_it, mesh.property(cogs, *v_it));
 
 #if 0
