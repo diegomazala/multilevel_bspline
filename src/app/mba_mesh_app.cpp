@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 
     if (argc < 4)
     {
-        std::cout << "Usage: app <mesh_file> < m_n > < h >\n"
+        std::cout << "Usage: app <mesh_file> < m_n > < h > 0 0\n"
                   << "Usage: app ../data/face.obj 3 3 \n";
         return EXIT_FAILURE;
     }
@@ -23,13 +23,13 @@ int main(int argc, char *argv[])
     const uint32_t n = m;
     const uint32_t h = atoi(argv[3]);
     const bool scattered = static_cast<bool>((argc > 4) ? atoi(argv[4]) : false);
+	const bool fix_border = static_cast<bool>((argc > 5) ? atoi(argv[5]) : false);
     const std::string filename_out = filename_append_before_extension(
         filename_append_before_extension(filename_append_before_extension(filename_in, argv[2]),
                                          argv[3]),
         "mba");
 
     Mesh_t mesh;
-    //TriMesh mesh;
     timer tm_load_mesh;
     if (!load_mesh(mesh, filename_in))
     {
@@ -68,15 +68,7 @@ int main(int argc, char *argv[])
     mesh_uv_to_vecs(mesh, x, y, z, u_array, v_array);
     tm_copy_data_arrays.stop();
 
-	//for (auto i = 0; i < mesh.n_vertices(); ++i)
- //   {
- //       std::cout << std::fixed << x[i] << ' ' << y[i] << ' ' << z[i] << ' ' << u_array[i] << ' '
- //                 << v_array[i] << std::endl;
- //   }
-
- //   std::cout << "--x--" << std::endl;
- //   exit(0);
-
+	
     //
     // construct the surface function
     //
@@ -139,10 +131,13 @@ int main(int argc, char *argv[])
         timer tm_update_vertices;
         for (size_t index = 0; index < mesh.n_vertices(); ++index)
         {
-            TriMesh::VertexHandle vi = mesh.vertex_handle(index);
+			Mesh_t::VertexHandle vi = mesh.vertex_handle(index);
             const auto uv = mesh.texcoord2D(vi);
             auto point_mesh = mesh.point(vi);
             auto point_out = point_mesh;
+
+			if (fix_border && mesh.is_boundary(vi))
+				continue;
 
             for (auto p = 0; p < 3; ++p)
             {
@@ -174,7 +169,7 @@ int main(int argc, char *argv[])
     timer tm_update_vertices;
     for (size_t index = 0; index < mesh.n_vertices(); ++index)
     {
-        TriMesh::VertexHandle vi = mesh.vertex_handle(index);
+        Mesh_t::VertexHandle vi = mesh.vertex_handle(index);
         const auto uv = mesh.texcoord2D(vi);
         auto point_mesh = mesh.point(vi);
         auto point_out = point_mesh;
