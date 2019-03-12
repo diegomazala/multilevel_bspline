@@ -290,7 +290,7 @@ void mesh_uv_to_vecs(const mesh_t& mesh, std::vector<scalar_t>& u, std::vector<s
 
 template <typename scalar_t, typename mesh_t>
 void mesh_uv_to_vecs(const mesh_t &mesh, std::vector<scalar_t> &x, std::vector<scalar_t> &y,
-                     std::vector<scalar_t> &z, std::vector<uint8_t> &is_boundary,
+                     std::vector<scalar_t> &z, 
                     std::vector<scalar_t>& u, std::vector<scalar_t>& v)
 {
     if (x.size() != mesh.n_vertices())
@@ -316,7 +316,6 @@ void mesh_uv_to_vecs(const mesh_t &mesh, std::vector<scalar_t> &x, std::vector<s
         x[i] = _point[0];
         y[i] = _point[1];
         z[i] = _point[2];
-		is_boundary[i] = mesh.is_boundary(*vi) ? 1 : 0;
         u[i] = _uv[0];
         v[i] = _uv[1];
 	}
