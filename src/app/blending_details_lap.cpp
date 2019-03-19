@@ -25,9 +25,9 @@ cmdline::parser cmd_parser;
 void cmd_parser_build()
 {
 	cmd_parser.add<std::string>("d",  0, "Detail mesh file", true);
-	cmd_parser.add<std::string>("t",  0, "Target mesh file", false);
-	cmd_parser.add<std::string>("df", 0, "Filtered detail mesh file", true);
-	cmd_parser.add<std::string>("tf", 0, "Filtered target mesh file", true);
+	cmd_parser.add<std::string>("b",  0, "Base mesh file", false);
+	cmd_parser.add<std::string>("ds", 0, "Smooth detail mesh file", true);
+	cmd_parser.add<std::string>("bs", 0, "Smooth target mesh file", true);
 	cmd_parser.add<std::string>("o",  0, "Output mesh result filename", true, "output.obj");
 }
 
@@ -45,15 +45,15 @@ int main(int argc, char* argv[])
 	// Set variables
 	//
 	const std::string& detail_mesh_filename 		= cmd_parser.get<std::string>("d");
-	const std::string& detail_base_mesh_filename	= cmd_parser.get<std::string>("df");
-	const std::string& target_mesh_filename 		= cmd_parser.get<std::string>("t");
-	const std::string& target_base_mesh_filename 	= cmd_parser.get<std::string>("tf");
+	const std::string& detail_smooth_mesh_filename	= cmd_parser.get<std::string>("ds");
+	const std::string& base_mesh_filename           = cmd_parser.get<std::string>("b");
+	const std::string& base_smooth_mesh_filename 	    = cmd_parser.get<std::string>("bs");
 	const std::string& output_mesh_filename 		= cmd_parser.get<std::string>("o");
 
 
 	PolyMesh detail_mesh;	
-	PolyMesh detail_base_mesh;
-	PolyMesh target_base_mesh;
+	PolyMesh detail_smooth_mesh;
+	PolyMesh base_smooth_mesh;
 
 	timer t;
 	t.start();
@@ -66,16 +66,16 @@ int main(int argc, char* argv[])
         detail_mesh.request_vertex_texcoords2D();
 		thread.push_back(std::thread([&] { OpenMesh::IO::read_mesh(detail_mesh, detail_mesh_filename, OptionRead); }));
 
-		//std::cout << "Loading: " << target_mesh_filename << '\n';
-		//thread.push_back(std::thread([&]() { OpenMesh::IO::read_mesh(target_mesh, target_mesh_filename, OptionRead); }));
+		//std::cout << "Loading: " << base_mesh_filename << '\n';
+		//thread.push_back(std::thread([&]() { OpenMesh::IO::read_mesh(target_mesh, base_mesh_filename, OptionRead); }));
 
-		std::cout << "Loading: " << detail_base_mesh_filename << '\n';
-        detail_base_mesh.request_vertex_texcoords2D();
-		thread.push_back(std::thread([&] { OpenMesh::IO::read_mesh(detail_base_mesh, detail_base_mesh_filename, OptionRead); }));
+		std::cout << "Loading: " << detail_smooth_mesh_filename << '\n';
+        detail_smooth_mesh.request_vertex_texcoords2D();
+		thread.push_back(std::thread([&] { OpenMesh::IO::read_mesh(detail_smooth_mesh, detail_smooth_mesh_filename, OptionRead); }));
 
-		std::cout << "Loading: " << target_base_mesh_filename << '\n';
-        target_base_mesh.request_vertex_texcoords2D();
-		thread.push_back(std::thread([&] { OpenMesh::IO::read_mesh(target_base_mesh, target_base_mesh_filename, OptionRead); }));
+		std::cout << "Loading: " << base_smooth_mesh_filename << '\n';
+        base_smooth_mesh.request_vertex_texcoords2D();
+		thread.push_back(std::thread([&] { OpenMesh::IO::read_mesh(base_smooth_mesh, base_smooth_mesh_filename, OptionRead); }));
 	}
 	catch(const std::exception& ex)
 	{
@@ -90,27 +90,27 @@ int main(int argc, char* argv[])
 	t.stop();
 	t.print_interval("Loading meshes  : ");
 
-	if (detail_mesh.n_vertices() != target_base_mesh.n_vertices() || detail_base_mesh.n_vertices() != target_base_mesh.n_vertices())
+	if (detail_mesh.n_vertices() != base_smooth_mesh.n_vertices() || detail_smooth_mesh.n_vertices() != base_smooth_mesh.n_vertices())
 	{
 		std::cerr 
 			<< "[Error] Vertex count does not match. The meshes must have the same topology.\n" 
 			<< "Detail Mesh     : " << detail_mesh.n_vertices() << ' ' << detail_mesh_filename  << '\n'
-                << "Detail Base Mesh: " << detail_base_mesh.n_vertices() << ' '
-                << detail_base_mesh_filename << '\n'
-                << "Target Base Mesh: " << target_base_mesh.n_vertices() << ' '
-                << target_base_mesh_filename << '\n'
+                << "Detail Smooth Mesh: " << detail_smooth_mesh.n_vertices() << ' '
+                << detail_smooth_mesh_filename << '\n'
+                << "Base Smooth Mesh: " << base_smooth_mesh.n_vertices() << ' '
+                << base_smooth_mesh_filename << '\n'
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 	PolyMesh::VertexIter v_it_d(detail_mesh.vertices_begin()), v_end_d(detail_mesh.vertices_end());
-	PolyMesh::VertexIter v_it_db(detail_base_mesh.vertices_begin()), v_end_db(detail_base_mesh.vertices_end());
-	PolyMesh::VertexIter v_it_tb(target_base_mesh.vertices_begin()), v_end_tb(target_base_mesh.vertices_end());
+	PolyMesh::VertexIter v_it_db(detail_smooth_mesh.vertices_begin()), v_end_db(detail_smooth_mesh.vertices_end());
+	PolyMesh::VertexIter v_it_tb(base_smooth_mesh.vertices_begin()), v_end_tb(base_smooth_mesh.vertices_end());
 
 	t.start();
 	for (; v_it_tb != v_end_tb; ++v_it_d, ++v_it_db, ++v_it_tb) 
 	{
-		const auto vec3 = detail_mesh.point(*v_it_d) - detail_base_mesh.point(*v_it_db) + target_base_mesh.point(*v_it_tb);
+		const auto vec3 = detail_mesh.point(*v_it_d) - detail_smooth_mesh.point(*v_it_db) + base_smooth_mesh.point(*v_it_tb);
 		detail_mesh.set_point(*v_it_d, vec3);
 	}
 	t.stop();
