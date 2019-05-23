@@ -1,0 +1,144 @@
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_50.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_100_000.obj
+Distance (min, max) :0.000991 0.744232
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_100.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_092_008.obj
+Distance (min, max) :0.001205 0.705082
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_084_016.obj
+Distance (min, max) :0.000139 0.665077
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_1000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_075_025.obj
+Distance (min, max) :0.000054 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_2500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_067_033.obj
+Distance (min, max) :0.000892 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_5000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_058_042.obj
+Distance (min, max) :0.000950 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_7500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_050_050.obj
+Distance (min, max) :0.001891 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_10000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_042_058.obj
+Distance (min, max) :0.000666 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_12000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_033_067.obj
+Distance (min, max) :0.001231 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_15000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_025_075.obj
+Distance (min, max) :0.000694 0.648257
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_17000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_016_084.obj
+Distance (min, max) :0.001503 0.701951
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_3_2_19000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_3_2_cdm_4_008_092.obj
+Distance (min, max) :0.000962 0.753255
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_50.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_100_000.obj
+Distance (min, max) :0.000282 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_100.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_092_008.obj
+Distance (min, max) :0.000653 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_084_016.obj
+Distance (min, max) :0.000386 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_1000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_075_025.obj
+Distance (min, max) :0.000352 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_2500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_067_033.obj
+Distance (min, max) :0.000937 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_5000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_058_042.obj
+Distance (min, max) :0.000216 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_7500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_050_050.obj
+Distance (min, max) :0.000413 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_10000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_042_058.obj
+Distance (min, max) :0.000445 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_12000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_033_067.obj
+Distance (min, max) :0.000450 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_15000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_025_075.obj
+Distance (min, max) :0.001078 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_17000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_016_084.obj
+Distance (min, max) :0.000780 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_4_2_19000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_4_2_cdm_4_008_092.obj
+Distance (min, max) :0.001155 0.788349
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_50.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_100_000.obj
+Distance (min, max) :0.000818 0.850964
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_100.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_092_008.obj
+Distance (min, max) :0.000622 0.804626
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_084_016.obj
+Distance (min, max) :0.000632 0.754430
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_1000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_075_025.obj
+Distance (min, max) :0.000493 0.749062
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_2500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_067_033.obj
+Distance (min, max) :0.000777 0.755628
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_5000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_058_042.obj
+Distance (min, max) :0.000405 0.764222
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_7500.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_050_050.obj
+Distance (min, max) :0.001068 0.772262
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_10000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_042_058.obj
+Distance (min, max) :0.001130 0.781793
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_12000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_033_067.obj
+Distance (min, max) :0.000742 0.794431
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_15000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_025_075.obj
+Distance (min, max) :0.001218 0.806321
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_17000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_016_084.obj
+Distance (min, max) :0.000849 0.819970
+
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_lap/fig_5_2_19000.obj
+Loading: E:/GDrive/Shared/Data/FigsHigh/blending_cdm/fig_5_2_cdm_4_008_092.obj
+Distance (min, max) :0.001322 0.826362

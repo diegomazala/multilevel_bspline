@@ -3,7 +3,7 @@ set obj_diff="E:/Projects/DSc/multilevel_bspline/msvc/bin/Release/obj_diff.exe"
 
 set path_blend_lap=E:/GDrive/Shared/Data/FigsHigh/blending_lap/
 set path_blend_others=E:/GDrive/Shared/Data/FigsHigh/blending_cdm/
-set path_out=E:/GDrive/Shared/Data/FigsHigh/diff_blending_lap_others/
+set path_out=E:/GDrive/Shared/Data/FigsHigh/diff_blending_lap_others_scale/
 
 
 
