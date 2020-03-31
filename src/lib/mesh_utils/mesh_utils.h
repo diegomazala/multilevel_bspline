@@ -3,8 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #if _MSC_VER
 #pragma warning(push, 0) // supressing warnings for OpenMesh

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(blending_face_details)
+project(blending_face_details C CXX)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -26,7 +26,7 @@ endif()
 
 find_package(embree 3.0 REQUIRED)
 if (NOT Embree_FOUND)
-    message(Warning " Threads was not found. Some projects will not be built")
+    message(Warning " Embree was not found. Some projects will not be built")
 endif()
 
 add_subdirectory(src/lib)

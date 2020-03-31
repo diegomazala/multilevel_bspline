@@ -51,7 +51,7 @@ if (Eigen3_FOUND)
     add_executable(${PROJECT_NAME} bezier_app.cpp)
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
     target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} ${OPENMESH_LIBRARIES} bezier)
+    target_link_libraries(${PROJECT_NAME} ${OPENMESH_LIBRARIES} Eigen3::Eigen bezier)
 endif()
     
 
@@ -120,7 +120,7 @@ endif()
 #
 # cdm
 #
-if (OpenMesh_FOUND)
+if (OpenMesh_FOUND AND Embree_FOUND)
     project(cdm VERSION 0.1 LANGUAGES CXX)
     add_executable(${PROJECT_NAME} cdm.cpp)
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)

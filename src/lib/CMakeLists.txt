@@ -34,8 +34,8 @@ if (Eigen3_FOUND)
     set(BEZIER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bezier)
 	set(LIB_NAME bezier)
 	add_library(${LIB_NAME} INTERFACE)
-    target_include_directories(${LIB_NAME} INTERFACE ${BEZIER_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR})
-    target_sources(${LIB_NAME} INTERFACE ${BEZIER_INCLUDE_DIR}/bezier.h)
+    target_include_directories(${LIB_NAME} INTERFACE ${BEZIER_INCLUDE_DIR})
+    target_sources(${LIB_NAME} INTERFACE ${BEZIER_INCLUDE_DIR}/bezier.h Eigen3::Eigen)
 endif()
 
 

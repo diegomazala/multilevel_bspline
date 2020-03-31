@@ -235,7 +235,7 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_bo
     }
     for (i = 0; i < N; ++i)
     {
-        //std::cout << "-- smoothing " << i << std::endl;
+        std::cout << "-- smoothing " << i << std::endl;
         if (mode == 3) CotanWeight(mesh);
 
         for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
@@ -306,7 +306,19 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_bo
 int main(int argc, char **argv)
 {
     PolyMesh mesh;
-    unsigned mode(atoi(argv[1])), N(atoi(argv[2]));
+    
+    if (argc < 5)
+    {
+        std::cerr << "Usage: \n\
+                    smooth <mode={1 = laplacian, 2 = taubin, 3 = laplacian with custom weights> \n\
+                    <number of iterations> \n\
+                    <filename_in> <filename_out>\n";
+        return EXIT_FAILURE;
+    }
+
+    unsigned mode = (argc > 1) ? atoi(argv[1]) : 1;
+    unsigned N = (argc > 2) ? atoi(argv[2]) : 100;
+
     OpenMesh::IO::Options mesh_in_opt(OpenMesh::IO::Options::VertexTexCoord);
 
     g_filename_in = argv[3];

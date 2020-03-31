@@ -1,9 +1,9 @@
 #include <iostream>
 
 #include <algorithm>
-#include <experimental/filesystem>
+#include <filesystem>
 #include <fstream>
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 #define _USE_MATH_DEFINES
 #include <OpenMesh/Core/IO/MeshIO.hh>
