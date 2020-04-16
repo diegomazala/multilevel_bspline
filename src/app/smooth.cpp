@@ -224,7 +224,7 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_bo
     float lamda, mu;
 
     std::vector<int> laps = {0,    50,    100,   500,   1000,  2500, 5000,
-                             7500, 10000, 12000, 15000, 17000, 19000};
+                             7500, 10000, 12500, 15000, 17500, 20000};
 
     if (mode == 1 || mode == 3)
         lamda = 0.25;
@@ -280,14 +280,20 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_bo
             if (!(fix_border && mesh.is_boundary(*v_it)))
                 mesh.set_point(*v_it, mesh.property(cogs, *v_it));
 
-#if 0
+#if 1
         for (auto l : laps)
         {
             if (i == l)
             {
-                if (OpenMesh::IO::write_mesh(mesh,
-                                             filename_append_before_extension(g_filename_out, l),
-                                             OpenMesh::IO::Options::VertexTexCoord))
+                // add vertex normals
+                mesh.update_vertex_normals();
+                mesh.update_face_normals();
+                VertexNormal(mesh);
+
+                OpenMesh::IO::Options mesh_out_opt(OpenMesh::IO::Options::VertexNormal);
+                mesh_out_opt += OpenMesh::IO::Options::VertexTexCoord;
+
+                if (OpenMesh::IO::write_mesh(mesh, filename_append_before_extension(g_filename_out, l), mesh_out_opt))
                 {
                     std::cout << "Saved smoothed mesh: "
                               << filename_append_before_extension(g_filename_out, l) << std::endl;
@@ -357,9 +363,10 @@ int main(int argc, char **argv)
     mesh.update_face_normals();
     VertexNormal(mesh);
 
-    OpenMesh::IO::Options mesh_out_opt;
+    OpenMesh::IO::Options mesh_out_opt(OpenMesh::IO::Options::VertexNormal);
     if (mesh_in_opt.check(OpenMesh::IO::Options::VertexTexCoord))
-        mesh_out_opt = OpenMesh::IO::Options::VertexTexCoord;
+        mesh_out_opt += OpenMesh::IO::Options::VertexTexCoord;
+
 
     // write mesh to stdout
     if (!OpenMesh::IO::write_mesh(mesh, g_filename_out, mesh_out_opt))
