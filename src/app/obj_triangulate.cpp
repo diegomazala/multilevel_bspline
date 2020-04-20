@@ -9,22 +9,8 @@ namespace fs = std::filesystem;
 #include <cmath>
 
 
-template <typename T>
-static std::string
-filename_append_before_extension(const std::string& filename_in,
-	const T& append, const char separator = '_')
-{
-	auto ext_pos = filename_in.rfind('.', filename_in.length());
-	if (ext_pos == std::string::npos)
-		ext_pos = filename_in.length();
-	std::stringstream filename_out;
-	filename_out << filename_in.substr(0, ext_pos) << separator << append
-		<< filename_in.substr(ext_pos, filename_in.length() - ext_pos);
-	return filename_out.str();
-}
 
-
-void quad_to_tri(tinyobj::scene_t& scene)
+void quad_to_tri(tinyobj::scene_t& scene, bool invert_face = false)
 {
 	auto max_size = max(max(scene.attrib.vertices.size() / 3, scene.attrib.normals.size() / 3), scene.attrib.texcoords.size() / 2);
 
@@ -35,29 +21,45 @@ void quad_to_tri(tinyobj::scene_t& scene)
 			continue;
 
 		tinyobj::mesh_t tri_mesh;
-
-		for (auto i = 0; i < shape.mesh.indices.size(); i += 4)
+		if (!invert_face)
 		{
-			const auto& idx_0 = shape.mesh.indices.at(i + 0);
-			const auto& idx_1 = shape.mesh.indices.at(i + 1);
-			const auto& idx_2 = shape.mesh.indices.at(i + 2);
-			const auto& idx_3 = shape.mesh.indices.at(i + 3);
+			for (auto i = 0; i < shape.mesh.indices.size(); i += 4)
+			{
+				const auto& idx_0 = shape.mesh.indices.at(i + 0);
+				const auto& idx_1 = shape.mesh.indices.at(i + 1);
+				const auto& idx_2 = shape.mesh.indices.at(i + 2);
+				const auto& idx_3 = shape.mesh.indices.at(i + 3);
 
-			//std::cout
-			//	<< idx_0.vertex_index << ' ' << idx_0.texcoord_index << ' ' << idx_0.normal_index << std::endl
-			//	<< idx_1.vertex_index << ' ' << idx_1.texcoord_index << ' ' << idx_1.normal_index << std::endl
-			//	<< idx_2.vertex_index << ' ' << idx_2.texcoord_index << ' ' << idx_2.normal_index << std::endl
-			//	<< idx_3.vertex_index << ' ' << idx_3.texcoord_index << ' ' << idx_3.normal_index << std::endl;
+				tri_mesh.indices.push_back(idx_0);
+				tri_mesh.indices.push_back(idx_1);
+				tri_mesh.indices.push_back(idx_3);
+				tri_mesh.num_face_vertices.push_back(3);
 
-			tri_mesh.indices.push_back(idx_0);
-			tri_mesh.indices.push_back(idx_1);
-			tri_mesh.indices.push_back(idx_3);
-			tri_mesh.num_face_vertices.push_back(3);
+				tri_mesh.indices.push_back(idx_1);
+				tri_mesh.indices.push_back(idx_2);
+				tri_mesh.indices.push_back(idx_3);
+				tri_mesh.num_face_vertices.push_back(3);
+			}
+		}
+		else
+		{
+			for (auto i = 0; i < shape.mesh.indices.size(); i += 4)
+			{
+				const auto& idx_0 = shape.mesh.indices.at(i + 0);
+				const auto& idx_1 = shape.mesh.indices.at(i + 1);
+				const auto& idx_2 = shape.mesh.indices.at(i + 2);
+				const auto& idx_3 = shape.mesh.indices.at(i + 3);
 
-			tri_mesh.indices.push_back(idx_1);
-			tri_mesh.indices.push_back(idx_2);
-			tri_mesh.indices.push_back(idx_3);
-			tri_mesh.num_face_vertices.push_back(3);
+				tri_mesh.indices.push_back(idx_0);
+				tri_mesh.indices.push_back(idx_3);
+				tri_mesh.indices.push_back(idx_1);
+				tri_mesh.num_face_vertices.push_back(3);
+
+				tri_mesh.indices.push_back(idx_1);
+				tri_mesh.indices.push_back(idx_3);
+				tri_mesh.indices.push_back(idx_2);
+				tri_mesh.num_face_vertices.push_back(3);
+			}
 		}
 
 		shape.mesh = tri_mesh;
@@ -90,16 +92,21 @@ int main(int argc, char* argv[])
 
 	if (fs::is_directory(input_path))
 	{
+		const fs::path output_dir = ((argc > 2) ? argv[2] : (fs::is_directory(output_path) ? input_path : input_path.parent_path()));
+
 		for (auto it = fs::directory_iterator(input_path); it != fs::directory_iterator(); ++it)
 		{
+			if (it->path().extension() != ".obj")
+				continue;
+
 			tinyobj::scene_t scene;
 			auto filename_in = it->path().string();
 			if (!tinyobj::load(scene, filename_in))
 				return EXIT_FAILURE;
 
-			quad_to_tri(scene);
+			quad_to_tri(scene, invert_face);
 
-			const std::string filename_out = filename_append_before_extension(filename_in, "tri");
+			const std::string filename_out = (output_dir / it->path().stem()).string() + "_tri.obj";
 			std::cout << "[Info] Saving obj file : " << filename_out << std::endl;
 			auto success_saving = tinyobj::save(scene, filename_out);
 			if (!success_saving)
@@ -116,9 +123,21 @@ int main(int argc, char* argv[])
 		if (!tinyobj::load(scene, filename_in))
 			return EXIT_FAILURE;
 		
-		quad_to_tri(scene);
+		quad_to_tri(scene, invert_face);
 
-		const std::string filename_out = filename_append_before_extension(filename_in, "tri");
+		std::string filename_out;
+
+		if (fs::is_directory(output_path))
+		{
+			output_path /= input_path.stem();
+			filename_out = output_path.string() + "_tri.obj";
+		}
+		else
+		{
+			filename_out = output_path.string();
+		}
+		
+
 		std::cout << "[Info] Saving obj file : " << filename_out << std::endl;
 		auto success_saving = tinyobj::save(scene, filename_out);
 		if (!success_saving)
