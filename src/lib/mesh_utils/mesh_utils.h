@@ -81,7 +81,7 @@ static bool load_mesh(mesh_t &mesh, const std::string &filename)
     try
     {
         std::cout << "-- Loading mesh  " << filename << std::endl;
-        OpenMesh::IO::Options OptionRead(OpenMesh::IO::Options::VertexTexCoord);
+        OpenMesh::IO::Options OptionRead(OpenMesh::IO::Options::VertexTexCoord | OpenMesh::IO::Options::VertexNormal);
         return OpenMesh::IO::read_mesh(mesh, filename, OptionRead);
     }
     catch (const std::exception &ex)
@@ -97,9 +97,7 @@ static bool save_mesh(const mesh_t &mesh, const std::string &filename)
     try
     {
         std::cout << "-- Saving mesh   " << filename << std::endl;
-        OpenMesh::IO::Options OptionWrite(
-            OpenMesh::IO::Options::
-                VertexTexCoord); // | OpenMesh::IO::Options::VertexNormal);
+        OpenMesh::IO::Options OptionWrite(OpenMesh::IO::Options::VertexTexCoord | OpenMesh::IO::Options::VertexNormal);
         return OpenMesh::IO::write_mesh(mesh, filename, OptionWrite);
     }
     catch (const std::exception &ex)
