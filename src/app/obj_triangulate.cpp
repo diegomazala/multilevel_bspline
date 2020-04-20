@@ -1,6 +1,6 @@
 #include <iostream>
 #include "tinyobj.h"
-#include <unordered_map>
+
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -12,8 +12,6 @@ namespace fs = std::filesystem;
 
 void quad_to_tri(tinyobj::scene_t& scene, bool invert_face = false)
 {
-	auto max_size = max(max(scene.attrib.vertices.size() / 3, scene.attrib.normals.size() / 3), scene.attrib.texcoords.size() / 2);
-
 	for (auto& shape : scene.shapes)
 	{
 		// is not quad?
@@ -21,7 +19,7 @@ void quad_to_tri(tinyobj::scene_t& scene, bool invert_face = false)
 			continue;
 
 		tinyobj::mesh_t tri_mesh;
-		if (!invert_face)
+		if (invert_face)
 		{
 			for (auto i = 0; i < shape.mesh.indices.size(); i += 4)
 			{
@@ -106,7 +104,7 @@ int main(int argc, char* argv[])
 
 			quad_to_tri(scene, invert_face);
 
-			const std::string filename_out = (output_dir / it->path().stem()).string() + "_tri.obj";
+			const std::string filename_out = (output_dir / it->path().stem()).string() + ".obj";
 			std::cout << "[Info] Saving obj file : " << filename_out << std::endl;
 			auto success_saving = tinyobj::save(scene, filename_out);
 			if (!success_saving)
@@ -130,7 +128,7 @@ int main(int argc, char* argv[])
 		if (fs::is_directory(output_path))
 		{
 			output_path /= input_path.stem();
-			filename_out = output_path.string() + "_tri.obj";
+			filename_out = output_path.string() + ".obj";
 		}
 		else
 		{
