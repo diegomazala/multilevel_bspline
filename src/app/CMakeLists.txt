@@ -268,3 +268,14 @@ project(obj_displacement_to_map)
 add_executable(${PROJECT_NAME} obj_displacement_to_map.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj stb_image Threads::Threads)
+
+
+
+###########################################################################
+#
+# obj_displacement_to_map
+#
+project(obj_triangulate)
+add_executable(${PROJECT_NAME} obj_triangulate.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj)
