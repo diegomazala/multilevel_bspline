@@ -245,18 +245,18 @@ target_link_libraries(${PROJECT_NAME} tinyobj Threads::Threads)
 
 ###########################################################################
 #
-# obj_displacement_to_map
+# obj_displacement_write
 #
-project(obj_displacement_to_map)
-add_executable(${PROJECT_NAME} obj_displacement_to_map.cpp)
+project(obj_displacement_write)
+add_executable(${PROJECT_NAME} obj_displacement_write.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-target_link_libraries(${PROJECT_NAME} tinyobj stb_image Threads::Threads)
+target_link_libraries(${PROJECT_NAME} common tinyobj stb_image Threads::Threads)
 
 
 
 ###########################################################################
 #
-# obj_displacement_to_map
+# obj_triangulate
 #
 project(obj_triangulate)
 add_executable(${PROJECT_NAME} obj_triangulate.cpp)
