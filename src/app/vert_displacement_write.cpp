@@ -9,10 +9,17 @@ namespace fs = std::filesystem;
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-static uint8_t get_dist_to_color_range(float value, float min_dist = 0.f, float max_dist = 3.0f)
+
+template<typename T>
+static T get_value_percentage_in_range(T min_value, T max_value, T value)
 {
-	return static_cast<uint8_t>( ( (value - min_dist) / (max_dist - min_dist) ) * max_dist);
+	return ( ( (value - min_value) / (max_value - min_value) ));
 }
+
+template<typename T> 
+static T lerp(T min_value, T max_value, T value) { return min_value + (max_value - min_value) * value; }
+
+
 
 int obj_displacement_write(const std::string& filename_inA, const std::string& filename_inB, const std::string& filename_out)
 {
@@ -89,7 +96,6 @@ int obj_displacement_write(const std::string& filename_inA, const std::string& f
 	//}
 
 	vector_write(filename_out, displacement);
-
 	std::cout << "Saved displacement file : " << filename_out << std::endl;
 
 	return EXIT_SUCCESS;
@@ -111,18 +117,49 @@ int vert_displacement_write(const std::string& filename_inA, const std::string& 
 		return EXIT_FAILURE;
 	}
 
-	std::vector<float> displacement(vertsA.size());
 
-	for (auto i = 0; i < vertsA.size(); ++i)
+	auto vert_count = vertsA.size() / 3;
+	auto disp_size = vert_count * 4;
+	std::vector<float> displacement(disp_size, 0);
+
+
+	float min_xyz[3] = { FLT_MAX, FLT_MAX, FLT_MAX };
+	float max_xyz[3] = { FLT_MIN, FLT_MIN, FLT_MIN };
+
+	for (auto i = 0; i < vert_count; ++i)
 	{
-		displacement[i] = vertsB[i] - vertsA[i];
+		float* va = &vertsA[i * 3];
+		float* vb = &vertsB[i * 3];
+
+		float* diff = &displacement[i * 4];
+		for (auto j = 0; j < 3; ++j)
+			diff[j] = vb[j] - va[j];
+
+		for (auto j = 0; j < 3; ++j)
+		{
+			if (min_xyz[j] > diff[j])
+				min_xyz[j] = diff[j];
+			if (max_xyz[j] < diff[j])
+				max_xyz[j] = diff[j];
+		}
 	}
 
-	for (int i = 0; i < displacement.size(); i += 3)
+	for (auto i = 0; i < vert_count; ++i)
 	{
-		std::cout << displacement[i + 0] << ' ' << displacement[i + 1] << ' ' << displacement[i + 2] << std::endl;
+		float* diff = &displacement[i * 4];
+		for (auto j = 0; j < 3; ++j)
+		{
+			diff[j] = get_value_percentage_in_range(min_xyz[j], max_xyz[j], diff[j]);
+		}
+		diff[3] = 0;
 	}
 
+	std::ofstream out_file(filename_out + "_info");
+	for (auto i = 0; i < 3; ++i)
+	{
+		out_file << min_xyz[i] << ' ' << max_xyz[i] << std::endl;
+	}
+	out_file.close();
 
 	vector_write(filename_out, displacement);
 	std::cout << "Saved displacement file : " << filename_out << std::endl;
