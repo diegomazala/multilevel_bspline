@@ -90,7 +90,7 @@ namespace tinyobj
 	}
 
 
-	static bool save(const scene_t& scene, const std::string& filename)
+	static bool save(const scene_t& scene, const std::string& filename, const std::string material_filename = std::string())
 	{
 		try
 		{
@@ -103,10 +103,12 @@ namespace tinyobj
 			const auto last_slash = min(filename.rfind('/'), filename.rfind('\\'));
 			const auto filename_without_dir = filename.substr(last_slash, filename.size() - last_slash);
 #endif
-			const auto dir = filename.substr(0, last_slash);
-			const std::string material_filename = dir + '/' + filename_without_dir + ".mtl";
-
-			save_material(scene, material_filename);
+			if (material_filename.empty())
+			{
+				const auto dir = filename.substr(0, last_slash);
+				std::string material_filename = dir + '/' + filename_without_dir + ".mtl";
+				save_material(scene, material_filename);
+			}
 
 			out << std::fixed
 				<< "###############################"
@@ -116,7 +118,7 @@ namespace tinyobj
 				<< "\n## Color Count     : " << scene.attrib.colors.size()
 				<< "\n## Material Count  : " << scene.materials.size()
 				<< "\n###############################\n"
-				<< "\nmtllib " << filename_without_dir << ".mtl\n"
+				<< "\nmtllib " << (material_filename.empty() ? filename_without_dir : material_filename) << ".mtl\n"
 				<< std::endl;
 
 			if (scene.attrib.colors.size() > 0)
@@ -214,7 +216,7 @@ namespace tinyobj
 			<< "\nTexCoord Count  : " << scene.attrib.texcoords.size() / 2
 			<< "\nColors Count    : " << scene.attrib.colors.size()
 			<< "\nMaterial Count  : " << scene.materials.size()
-			<< "\nShapes          : " << scene.materials.size();
+			<< "\nShapes          : " << scene.shapes.size();
 		    
 		for (const auto& shape : scene.shapes)
 		{
@@ -403,5 +405,32 @@ namespace tinyobj
 		}
 
 		return true;
+	}
+
+	static bool remove_groups(scene_t& scene, const std::vector<std::string>& group_names)
+	{
+		const auto initial_shapes_count = scene.shapes.size();
+		std::vector<tinyobj::shape_t> shapes;
+
+
+		for (const auto& group_name : group_names)
+		{
+			bool found = false;
+			do
+			{
+				for (auto i = 0; i < scene.shapes.size(); ++i)
+				{
+					if (scene.shapes[i].name == group_name)
+					{
+						auto it = scene.shapes.begin() + i;
+						std::cout << "[Info] Removed " << it->name << std::endl;
+						scene.shapes.erase(it);
+					}
+				}
+
+			} while (found);
+		}
+
+		return (shapes.size() < initial_shapes_count);
 	}
 } // end namespace tinyobj

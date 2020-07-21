@@ -126,16 +126,19 @@ void delete_vertex_index(PolyMesh &mesh)
 
 int main(int argc, char *argv[])
 {
-    if (argc != 3)
+    if (argc < 3)
     {
-        std::cout << "Usage: app <mesh_file> < min_z > \n"
+        std::cout << "Usage: app <mesh_file_in> < min_z > <mesh_file_out>\n"
                   << "Usage: app ../data/face.obj 0 \n";
         return EXIT_FAILURE;
     }
 
     g_filename_in = argv[1];
     const float min_z = atof(argv[2]);
-    g_filename_out = filename_append_before_extension(g_filename_in, "cut");
+    if (argc > 2)
+        g_filename_out = argv[3];
+    else
+        g_filename_out = filename_append_before_extension(g_filename_in, "cut");
 
     // g_filename_out = g_filename_in;
     // g_filename_out = g_filename_out.replace(g_filename_out.size() - 8, 5, ".");
@@ -165,7 +168,7 @@ int main(int argc, char *argv[])
     // these three functions are independent
     // for simplicity, choose only one of then
     //
-    // save_verts_index(mesh_in, min_z);
+    //save_verts_index(mesh_in, min_z);
     // mesh_cut(mesh_in, min_z);
     delete_vertex_index(mesh_in);
 

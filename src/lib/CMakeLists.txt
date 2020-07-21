@@ -99,11 +99,11 @@ target_sources(${LIB_NAME} INTERFACE
 #
 # tinyobj lib
 #
-set(COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyobj)
+set(TINY_OBJ_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyobj)
 set(LIB_NAME tinyobj)
 add_library(${LIB_NAME} INTERFACE)
-target_include_directories(${LIB_NAME} INTERFACE ${COMMON_INCLUDE_DIR})
+target_include_directories(${LIB_NAME} INTERFACE ${TINY_OBJ_INCLUDE_DIR})
 target_sources(${LIB_NAME} INTERFACE 
-    ${COMMON_INCLUDE_DIR}/tiny_obj_loader.h
-    ${COMMON_INCLUDE_DIR}/tiny_obj_loader.h
-	${COMMON_INCLUDE_DIR}/tinyobj.h)
+    ${TINY_OBJ_INCLUDE_DIR}/tiny_obj_loader.h
+    #${TINY_OBJ_INCLUDE_DIR}/tiny_obj_loader.cc
+	${TINY_OBJ_INCLUDE_DIR}/tinyobj.h)

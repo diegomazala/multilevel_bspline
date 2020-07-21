@@ -53,7 +53,6 @@ if (Eigen3_FOUND)
     target_include_directories (${PROJECT_NAME} PRIVATE ${OPENMESH_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} ${OPENMESH_LIBRARIES} Eigen3::Eigen bezier)
 endif()
-    
 
 
 
@@ -217,6 +216,7 @@ endif()
 project(obj_validate)
 add_executable(${PROJECT_NAME} obj_validate.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+#target_include_directories (${PROJECT_NAME} PRIVATE ${TINY_OBJ_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} tinyobj)
 
 
@@ -227,6 +227,16 @@ target_link_libraries(${PROJECT_NAME} tinyobj)
 #
 project(obj_extract_group)
 add_executable(${PROJECT_NAME} obj_extract_group.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj)
+
+
+###########################################################################
+#
+# obj_remove_group
+#
+project(obj_remove_group)
+add_executable(${PROJECT_NAME} obj_remove_group.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj)
 
@@ -250,7 +260,7 @@ target_link_libraries(${PROJECT_NAME} tinyobj Threads::Threads)
 project(vert_displacement_write)
 add_executable(${PROJECT_NAME} vert_displacement_write.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-target_link_libraries(${PROJECT_NAME} common tinyobj stb_image Threads::Threads)
+target_link_libraries(${PROJECT_NAME} common tinyobj Threads::Threads)
 
 
 
