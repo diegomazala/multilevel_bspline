@@ -232,7 +232,7 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, std::vector<int> nIteration
         lamda = 0.5;
         mu = -0.67;
     }
-    for (i = 0; i < N; ++i)
+    for (i = 0; i <= N; ++i)
     {
         std::cout << "-- smoothing " << i << std::endl;
         if (mode == 3) CotanWeight(mesh);
