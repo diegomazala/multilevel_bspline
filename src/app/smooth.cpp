@@ -203,7 +203,8 @@ void CotanWeight(PolyMesh &mesh)
     }
 }
 
-void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_border = false)
+
+void VertexSmooth(PolyMesh &mesh, unsigned int mode, std::vector<int> nIterations, bool fix_border = false)
 {
     /////////////////////////////////////////////////////////
     // mode 1 = Laplacian smoothing                        //
@@ -221,10 +222,8 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_bo
     PolyMesh::HalfedgeHandle h0, h1;
     PolyMesh::Scalar valence, weight;
     unsigned int i;
+    int N = nIterations[nIterations.size() - 1];
     float lamda, mu;
-
-    std::vector<int> laps = {0,    50,    100,   500,   1000,  2500, 5000,
-                             7500, 10000, 12500, 15000, 17500, 20000};
 
     if (mode == 1 || mode == 3)
         lamda = 0.25;
@@ -281,7 +280,7 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, unsigned int N, bool fix_bo
                 mesh.set_point(*v_it, mesh.property(cogs, *v_it));
 
 #if 1
-        for (auto l : laps)
+        for (auto l : nIterations)
         {
             if (i == l)
             {
@@ -316,19 +315,21 @@ int main(int argc, char **argv)
     if (argc < 5)
     {
         std::cerr << "Usage: \n\
+                    <filename_in> \n\
+                    <filename_out> \n\
                     smooth <mode={1 = laplacian, 2 = taubin, 3 = laplacian with custom weights> \n\
-                    <number of iterations> \n\
-                    <filename_in> <filename_out>\n";
+                    <number of iterations, number of iterations, number of iterations, ...> \n";
         return EXIT_FAILURE;
     }
 
-    unsigned mode = (argc > 1) ? atoi(argv[1]) : 1;
-    unsigned N = (argc > 2) ? atoi(argv[2]) : 100;
+	g_filename_in = argv[1];
+	g_filename_out = argv[2];
+    int mode = atoi(argv[3]);
+    std::vector<int> nIterations;
+    for (auto i = 4; i < argc; ++i)
+        nIterations.push_back(atoi(argv[i]));
 
     OpenMesh::IO::Options mesh_in_opt(OpenMesh::IO::Options::VertexTexCoord);
-
-    g_filename_in = argv[3];
-    g_filename_out = argv[4];
 
     mesh.request_vertex_normals();
     mesh.request_face_normals();
@@ -356,13 +357,14 @@ int main(int argc, char **argv)
 
     // main function
     OriginalRank(mesh);
-    VertexSmooth(mesh, mode, N);
+    VertexSmooth(mesh, mode, nIterations);
 
     // add vertex normals
     mesh.update_vertex_normals();
     mesh.update_face_normals();
     VertexNormal(mesh);
 
+#if 0 // The mesh is being save inside VertexNormal function
     OpenMesh::IO::Options mesh_out_opt(OpenMesh::IO::Options::VertexNormal);
     if (mesh_in_opt.check(OpenMesh::IO::Options::VertexTexCoord))
         mesh_out_opt += OpenMesh::IO::Options::VertexTexCoord;
@@ -374,9 +376,11 @@ int main(int argc, char **argv)
         std::cerr << "Error: cannot write mesh to " << argv[4] << std::endl;
         return 1;
     }
+#endif
 
     // print simple rank
     SimpleRank(mesh, mode);
+
 
     return 0;
 }
