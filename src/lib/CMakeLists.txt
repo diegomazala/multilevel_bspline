@@ -107,3 +107,16 @@ target_sources(${LIB_NAME} INTERFACE
     ${TINY_OBJ_INCLUDE_DIR}/tiny_obj_loader.h
     #${TINY_OBJ_INCLUDE_DIR}/tiny_obj_loader.cc
 	${TINY_OBJ_INCLUDE_DIR}/tinyobj.h)
+
+
+###########################################################################
+#
+# tinyply lib
+#
+set(TINY_PLY_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyply)
+set(LIB_NAME tinyply)
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE ${TINY_PLY_INCLUDE_DIR})
+target_sources(${LIB_NAME} INTERFACE 
+    ${TINY_PLY_INCLUDE_DIR}/tinyply.h
+    ${TINY_PLY_INCLUDE_DIR}/tinyply.cpp)

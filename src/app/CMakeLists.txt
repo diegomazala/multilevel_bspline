@@ -46,7 +46,7 @@ endif()
 #
 # bezier_app
 #
-if (Eigen3_FOUND)
+if (Eigen3_FOUND AND OPEN_MESH_FOUND)
     project(bezier_app VERSION 0.1 LANGUAGES CXX)
     add_executable(${PROJECT_NAME} bezier_app.cpp)
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
@@ -272,3 +272,13 @@ project(obj_triangulate)
 add_executable(${PROJECT_NAME} obj_triangulate.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj)
+
+
+###########################################################################
+#
+# obj_split_file
+#
+project(obj_split_file)
+add_executable(${PROJECT_NAME} obj_split_file.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj tinyply common)
