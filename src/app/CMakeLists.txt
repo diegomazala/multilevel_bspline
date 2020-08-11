@@ -272,3 +272,13 @@ project(obj_triangulate)
 add_executable(${PROJECT_NAME} obj_triangulate.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj)
+
+
+###########################################################################
+#
+# obj_uv_flip
+#
+project(obj_uv_flip)
+add_executable(${PROJECT_NAME} obj_uv_flip.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj)
