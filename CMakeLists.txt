@@ -7,6 +7,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH              ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
+list(APPEND CMAKE_PREFIX_PATH $ENV{EMBREE_DIR})
+list(APPEND CMAKE_PREFIX_PATH $ENV{OPENMESH_DIR})
 
 find_package(OpenMesh)
 if (NOT OPENMESH_FOUND)
@@ -24,7 +26,8 @@ if (NOT Threads_FOUND)
     message(Warning " Threads was not found. Some projects will not be built")
 endif()
 
-find_package(embree 3.0 REQUIRED)
+
+find_package(embree REQUIRED)
 if (NOT Embree_FOUND)
     message(Warning " Embree was not found. Some projects will not be built")
 endif()

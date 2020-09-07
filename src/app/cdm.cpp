@@ -1,11 +1,11 @@
-#include <experimental/filesystem>
+#include <filesystem>
 #include <fstream>
 #include <thread>
 #include <timer.h>
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 #if _MSC_VER
-#pragma warning(push, 0) // supressing warnings for OpenMesh
+#pragma warning(push, 0) // suppressing warnings for OpenMesh
 #endif
 #define _USE_MATH_DEFINES
 #include <OpenMesh/Core/IO/MeshIO.hh>
@@ -22,10 +22,6 @@ using decimal_t = float;
 typedef OpenMesh::TriMesh_ArrayKernelT<> TriMesh;
 typedef OpenMesh::PolyMesh_ArrayKernelT<> Mesh_t;
 
-#include <embree3/common/math/vec3.h>
-#include <embree3/common/math/vec3fa.h>
-#include <embree3/common/simd/sse.h>
-#include <embree3/common/sys/alloc.h>
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 struct Vertex
