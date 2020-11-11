@@ -291,3 +291,13 @@ project(obj_split_file)
 add_executable(${PROJECT_NAME} obj_split_file.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj tinyply common)
+
+
+###########################################################################
+#
+# polifit
+#
+project(polifit)
+add_executable(${PROJECT_NAME} polifit.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} Eigen3::Eigen common)
