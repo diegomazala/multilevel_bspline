@@ -301,3 +301,13 @@ project(polifit)
 add_executable(${PROJECT_NAME} polifit.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} Eigen3::Eigen common)
+
+
+###########################################################################
+#
+# obj_polyfit
+#
+project(obj_polyfit)
+add_executable(${PROJECT_NAME} obj_polyfit.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj Eigen3::Eigen common)

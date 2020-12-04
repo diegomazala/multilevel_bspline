@@ -2,6 +2,23 @@
 #include <vector>
 #include "timer.h"
 
+int32_t nearestPowerOfTwo(int32_t n)
+{
+	int v = n;
+
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++; // next power of 2
+
+    int32_t x = v >> 1; // previous power of 2
+
+	return (v - n) > (n - x) ? x : v;
+}
+
 template<typename T>
 void polyfit(const std::vector<T> &xv, const std::vector<T> &yv, std::vector<T> &coeff, int order)
 {
@@ -42,6 +59,9 @@ int main()
     std::cout << std::fixed << coeff[3] << "*x^3 + " << coeff[2] << "*x^2 + " << coeff[1] << "*x + " << coeff[0] << std::endl;
     printf("%f*x^3 + %f*x^2 + %f*x + %f\n", coeff[3], coeff[2], coeff[1], coeff[0]);
     //std::cout << msg << diff_sec() << " seconds " << std::endl;
+
+    std::cout << "pow: " << nearestPowerOfTwo(64 + 31) << std::endl;
+    std::cout << "pow: " << nearestPowerOfTwo(64 + 32) << std::endl;
 
     return 0;
 }
