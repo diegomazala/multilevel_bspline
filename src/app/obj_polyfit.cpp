@@ -67,8 +67,8 @@ int main(int argc, char* argv[])
 	//
 	for (const auto& entry : fs::directory_iterator(dir)) 
 	{
-		auto pos = (entry.path().has_stem()) ? entry.path().stem().string().find(prefix) : std::string::npos;
-		if (pos != std::string::npos)
+		auto pos_prefix = (entry.path().has_stem()) ? entry.path().stem().string().find(prefix) : std::string::npos;
+		if (pos_prefix != std::string::npos && entry.path().extension() == ".obj")
 		{
 			files.push_back(entry.path().string());
 			//std::cout << "--> " << entry.path().stem().string() << '\n';
@@ -108,7 +108,9 @@ int main(int argc, char* argv[])
 
 		if (obj_scenes[i].attrib.vertices.size() != vertex_array_size)
 		{
-			std::cerr << "[Error] Vertex count does not match. Abort " << std::endl;
+			std::cerr << "[Error] Vertex count does not match. " 
+				<< obj_scenes[i].attrib.vertices.size() << " != " 
+				<< vertex_array_size << " Abort " << std::endl;
 			return EXIT_FAILURE;
 		}
 
@@ -148,13 +150,19 @@ int main(int argc, char* argv[])
 			poly_z.push_back(coeff_z[j]);
 		}
 	}
+	const std::string out_filename = (dir / (prefix + ".poly")).string();
+	std::cout << "[Info] Saving output file: " << out_filename << std::endl;
 
-	std::cout << "[Info] Saving output files " << std::endl;
+	std::vector<float> poly_xyz;
+	std::copy(poly_x.begin(), poly_x.end(), std::back_inserter(poly_xyz));
+	std::copy(poly_y.begin(), poly_y.end(), std::back_inserter(poly_xyz));
+	std::copy(poly_z.begin(), poly_z.end(), std::back_inserter(poly_xyz));
 
-	vector_write((dir / (prefix + "x.poly")).string(), poly_x);
-	vector_write((dir / (prefix + "y.poly")).string(), poly_y);
-	vector_write((dir / (prefix + "z.poly")).string(), poly_z);
+	//vector_write((dir / (prefix + "x.poly")).string(), poly_x);
+	//vector_write((dir / (prefix + "y.poly")).string(), poly_y);
+	//vector_write((dir / (prefix + "z.poly")).string(), poly_z);
 
+	vector_write(out_filename, poly_xyz);
 
     return 0;
 }
