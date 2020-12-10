@@ -292,6 +292,14 @@ add_executable(${PROJECT_NAME} obj_split_file.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj tinyply common)
 
+###########################################################################
+# obj_split_file_poly
+#
+project(obj_split_file_poly)
+add_executable(${PROJECT_NAME} obj_split_file_poly.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj tinyply common)
+
 
 ###########################################################################
 #

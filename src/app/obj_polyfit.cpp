@@ -154,9 +154,47 @@ int main(int argc, char* argv[])
 	std::cout << "[Info] Saving output file: " << out_filename << std::endl;
 
 	std::vector<float> poly_xyz;
-	std::copy(poly_x.begin(), poly_x.end(), std::back_inserter(poly_xyz));
-	std::copy(poly_y.begin(), poly_y.end(), std::back_inserter(poly_xyz));
-	std::copy(poly_z.begin(), poly_z.end(), std::back_inserter(poly_xyz));
+	//std::copy(poly_x.begin(), poly_x.end(), std::back_inserter(poly_xyz));
+	//std::copy(poly_y.begin(), poly_y.end(), std::back_inserter(poly_xyz));
+	//std::copy(poly_z.begin(), poly_z.end(), std::back_inserter(poly_xyz));
+
+	for (auto i = 0; i < poly_x.size(); i+=4)
+	{
+		poly_xyz.push_back(poly_x[i + 0]);
+		poly_xyz.push_back(poly_x[i + 1]);
+		poly_xyz.push_back(poly_x[i + 2]);
+		poly_xyz.push_back(poly_x[i + 3]);
+
+		poly_xyz.push_back(poly_y[i + 0]);
+		poly_xyz.push_back(poly_y[i + 1]);
+		poly_xyz.push_back(poly_y[i + 2]);
+		poly_xyz.push_back(poly_y[i + 3]);
+
+		poly_xyz.push_back(poly_z[i + 0]);
+		poly_xyz.push_back(poly_z[i + 1]);
+		poly_xyz.push_back(poly_z[i + 2]);
+		poly_xyz.push_back(poly_z[i + 3]);
+	}
+
+	std::cout << "poly x   size: " << poly_x.size() << std::endl;
+	std::cout << "poly xyz size: " << poly_xyz.size() << std::endl;
+
+	//for (auto i = 0; i < poly_x.size(); i+=4)
+	//{
+	//	auto stride = 3 * 4;
+	//	poly_xyz[i * stride + 0]  = poly_x[i + 0];
+	//	poly_xyz[i * stride + 1]  = poly_x[i + 1];
+	//	poly_xyz[i * stride + 2]  = poly_x[i + 2];
+	//	poly_xyz[i * stride + 3]  = poly_x[i + 3];
+	//	poly_xyz[i * stride + 4]  = poly_y[i + 0];
+	//	poly_xyz[i * stride + 5]  = poly_y[i + 1];
+	//	poly_xyz[i * stride + 6]  = poly_y[i + 2];
+	//	poly_xyz[i * stride + 7]  = poly_y[i + 3];
+	//	poly_xyz[i * stride + 8]  = poly_z[i + 0];
+	//	poly_xyz[i * stride + 9]  = poly_z[i + 1];
+	//	poly_xyz[i * stride + 10] = poly_z[i + 2];
+	//	poly_xyz[i * stride + 11] = poly_z[i + 3];
+	//}
 
 	//vector_write((dir / (prefix + "x.poly")).string(), poly_x);
 	//vector_write((dir / (prefix + "y.poly")).string(), poly_y);
