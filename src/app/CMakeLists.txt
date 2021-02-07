@@ -319,3 +319,13 @@ project(obj_polyfit)
 add_executable(${PROJECT_NAME} obj_polyfit.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj Eigen3::Eigen common)
+
+
+###########################################################################
+#
+# vert_polyfit
+#
+project(vert_polyfit)
+add_executable(${PROJECT_NAME} vert_polyfit.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} Eigen3::Eigen common)
