@@ -74,7 +74,6 @@ int main(int argc, char* argv[])
 
 
 
-
 	//
 	// Load and process the others files
 	//
@@ -99,31 +98,32 @@ int main(int argc, char* argv[])
 	}
 
 
-	Eigen::VectorXd _x(14), _xn(14);
-	_x << 0, 50, 100, 250, 500, 1000, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000;
+	Eigen::VectorXd x(14), xn(14);
+	x << 0, 50, 100, 250, 500, 1000, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000;
 	
-	for (auto j = 0; j < _x.size(); ++j)
+	for (auto j = 0; j < x.size(); ++j)
 	{
-		_xn[j] = lerp(_x[0], _x[_x.rows() - 1], _x[j]);
+		xn[j] = lerp(x[0], x[x.rows() - 1], x[j]);
 	}
 
-	if (_x.size() != vert_files.size())
+	if (x.size() != vert_files.size())
 	{
 		std::cerr << "Input x array size does not match to number of vert files. ("
-			<< _x.size() << " != " << vert_files.size() << "). Abort" << std::endl;
+			<< x.size() << " != " << vert_files.size() << "). Abort" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 
-
 	const int order = 3;
-	std::vector<Eigen::Matrix<double, 14, 1>> _xx(vertex_array_size);
-	std::vector<Eigen::Matrix<double, 14, 1>> _yx(vertex_array_size);
-	std::vector<Eigen::Matrix<double, 14, 1>> _yy(vertex_array_size);
-	std::vector<Eigen::Matrix<double, 14, 1>> _yz(vertex_array_size);
-	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> _coeff_x(vertex_array_size);	// size = order + 1
-	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> _coeff_y(vertex_array_size);
-	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> _coeff_z(vertex_array_size);
+	std::vector<Eigen::Matrix<double, 14, 1>> yx(vertex_array_size);
+	std::vector<Eigen::Matrix<double, 14, 1>> yy(vertex_array_size);
+	std::vector<Eigen::Matrix<double, 14, 1>> yz(vertex_array_size);
+	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> coeff_x(vertex_array_size);	// rows = order + 1
+	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> coeff_y(vertex_array_size);
+	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> coeff_z(vertex_array_size);
+	std::vector<double> error_x(vertex_array_size);	
+	std::vector<double> error_y(vertex_array_size);
+	std::vector<double> error_z(vertex_array_size);
 
 
 	std::cout << "[Info] Building matrices ..." << std::endl;
@@ -132,45 +132,54 @@ int main(int argc, char* argv[])
 	{
 		for (auto j = 0; j < vert_files.size(); ++j)
 		{
-			_xx[i][j] = lerp(_x[0], _x[_x.rows() - 1], _x[j]);
-			_yx[i][j] = vert_files[j][i + 0];
-			_yy[i][j] = vert_files[j][i + 1];
-			_yz[i][j] = vert_files[j][i + 2];
+			yx[i][j] = vert_files[j][i + 0];
+			yy[i][j] = vert_files[j][i + 1];
+			yz[i][j] = vert_files[j][i + 2];
 		}
 	}
-
 
 
 	std::cout << "Computing polyfit ..." << std::endl;
 	timer t;
 
-
-
 	for (auto i = 0; i < vertex_array_size; i += 3)
 	{
-		_coeff_x[i] = poly::fit<double>(_xn, _yx[i], order);
-		_coeff_y[i] = poly::fit<double>(_xn, _yy[i], order);
-		_coeff_z[i] = poly::fit<double>(_xn, _yz[i], order);
+		coeff_x[i] = poly::fit<double>(xn, yx[i], order);
+		coeff_y[i] = poly::fit<double>(xn, yy[i], order);
+		coeff_z[i] = poly::fit<double>(xn, yz[i], order);
 	}
-	
-	
 	t.stop();
-	std::cout << "Polyfit time elapsed: " << t.diff_sec() << " seconds " << std::endl;
+	std::cout << "Polyfit Computing time elapsed: " << t.diff_sec() << " seconds " << std::endl;
 
+	std::cout << "Computing error ..." << std::endl;
+	t.start();
+	for (auto i = 0; i < vertex_array_size; i += 3)
+	{
+		for (auto j = 0; j < vert_files.size(); ++j)
+		{
+			error_x[i] = std::sqrt(std::pow(poly::eval(coeff_x[i], xn[j]), 2) - std::pow(yx[i][j], 2));
+			error_y[i] = std::sqrt(std::pow(poly::eval(coeff_y[i], xn[j]), 2) - std::pow(yy[i][j], 2));
+			error_z[i] = std::sqrt(std::pow(poly::eval(coeff_z[i], xn[j]), 2) - std::pow(yz[i][j], 2));
+		}
+	}
+	t.stop();
+	std::cout << "Polyfit Error time elapsed: " << t.diff_sec() << " seconds " << std::endl;
+	
+	
 	
 
-
+	
 	//
 	// Combining the coeff vector into a single vector
 	//
 	std::vector<float> poly;
-	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>& v : _coeff_x)
+	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>& v : coeff_x)
 		for (const auto& vv : v)
 			poly.push_back(vv);
-	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : _coeff_y)
+	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : coeff_y)
 		for (const auto& vv : v)
 			poly.push_back(vv);
-	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : _coeff_z)
+	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : coeff_z)
 		for (const auto& vv : v)
 			poly.push_back(vv);
 	
@@ -180,6 +189,17 @@ int main(int argc, char* argv[])
 	std::cout << "[Info] Saving output file: " << out_filename << std::endl;
 	vector_write(out_filename, poly);
 
+	std::vector<float> error(error_x.size() * 3);
+	for (auto i = 0; i < error_x.size(); ++i)
+	{
+		error[i * 3 + 0] = error_x[i];
+		error[i * 3 + 1] = error_y[i];
+		error[i * 3 + 2] = error_z[i];
+	}
+
+	const std::string out_error_filename = (dir / (prefix + ".poly_err")).string();
+	std::cout << "[Info] Saving output file: " << out_error_filename << std::endl;
+	vector_write(out_error_filename, error);
 
     return EXIT_SUCCESS;
 }
