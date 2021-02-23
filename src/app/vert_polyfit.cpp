@@ -16,6 +16,36 @@ template<typename T> T lerp(T begin, T end, T value)
 
 
 
+static auto get_heat_map_rgb(float value)
+{
+	const int NUM_COLORS = 4;
+	static float color[NUM_COLORS][3] = { {0,0,1}, {0,1,0}, {1,1,0}, {1,0,0} };
+	// A static array of 4 colors:  (blue,   green,  yellow,  red) using {r,g,b} for each.
+
+	int idx1;        // |-- Our desired color will be between these two indexes in "color".
+	int idx2;        // |
+	float fractBetween = 0;  // Fraction between "idx1" and "idx2" where our value is.
+
+	if (value <= 0) { idx1 = idx2 = 0; }    // accounts for an input <=0
+	else if (value >= 1) { idx1 = idx2 = NUM_COLORS - 1; }    // accounts for an input >=0
+	else
+	{
+		value = value * (NUM_COLORS - 1);        // Will multiply value by 3.
+		idx1 = floor(value);                  // Our desired color will be after this index.
+		idx2 = idx1 + 1;                        // ... and before this index (inclusive).
+		fractBetween = value - float(idx1);    // Distance between the two indexes (0-1).
+	}
+
+	float rgb[3] =
+	{
+		(color[idx2][0] - color[idx1][0]) * fractBetween + color[idx1][0],
+		(color[idx2][1] - color[idx1][1]) * fractBetween + color[idx1][1],
+		(color[idx2][2] - color[idx1][2]) * fractBetween + color[idx1][2]
+	};
+	return rgb;
+}
+
+
 // app.exe D:/Projects/MDP/Meshes/AllFaces/Quad2Triangles_Polyfit Fig05_lap_
 int main(int argc, char* argv[])
 {
@@ -157,9 +187,9 @@ int main(int argc, char* argv[])
 	{
 		for (auto j = 0; j < vert_files.size(); ++j)
 		{
-			error_x[i] = std::sqrt(std::pow(poly::eval(coeff_x[i], xn[j]), 2) - std::pow(yx[i][j], 2));
-			error_y[i] = std::sqrt(std::pow(poly::eval(coeff_y[i], xn[j]), 2) - std::pow(yy[i][j], 2));
-			error_z[i] = std::sqrt(std::pow(poly::eval(coeff_z[i], xn[j]), 2) - std::pow(yz[i][j], 2));
+			error_x[i] = std::sqrt(std::abs(std::pow(poly::eval(coeff_x[i], xn[j]), 2) - std::pow(yx[i][j], 2)));
+			error_y[i] = std::sqrt(std::abs(std::pow(poly::eval(coeff_y[i], xn[j]), 2) - std::pow(yy[i][j], 2)));
+			error_z[i] = std::sqrt(std::abs(std::pow(poly::eval(coeff_z[i], xn[j]), 2) - std::pow(yz[i][j], 2)));
 		}
 	}
 	t.stop();
@@ -183,23 +213,64 @@ int main(int argc, char* argv[])
 		for (const auto& vv : v)
 			poly.push_back(vv);
 	
-	
-
 	const std::string out_filename = (dir / (prefix + ".poly")).string();
 	std::cout << "[Info] Saving output file: " << out_filename << std::endl;
 	vector_write(out_filename, poly);
 
-	std::vector<float> error(error_x.size() * 3);
+	std::vector<float> error(error_x.size() * 3, 0);
+	std::vector<float> err_color(error_x.size() * 3, 0);
+
+	float minx = FLT_MAX, miny = FLT_MAX, minz = FLT_MAX, maxx = FLT_MIN, maxy = FLT_MIN, maxz = FLT_MIN;
+
 	for (auto i = 0; i < error_x.size(); ++i)
 	{
 		error[i * 3 + 0] = error_x[i];
 		error[i * 3 + 1] = error_y[i];
 		error[i * 3 + 2] = error_z[i];
+
+		if (minx > error_x[i]) minx = error_x[i];
+		if (miny > error_y[i]) miny = error_y[i];
+		if (minz > error_z[i]) minz = error_z[i];
+		if (maxx < error_x[i]) maxx = error_x[i];
+		if (maxy < error_y[i]) maxy = error_y[i];
+		if (maxz < error_z[i]) maxz = error_z[i];
 	}
+
+	std::cout
+		<< minx << ' ' << miny << ' ' << minz << std::endl
+		<< maxx << ' ' << maxy << ' ' << maxz << std::endl;
+
+	float min_err = FLT_MAX, max_err = FLT_MIN;
+
+	for (auto i = 0; i < error_x.size(); ++i)
+	{
+		float x_norm = (error[i * 3 + 0] - minx) / ((maxx - minx) + FLT_MIN);
+		float y_norm = (error[i * 3 + 1] - miny) / ((maxy - miny) + FLT_MIN);
+		float z_norm = (error[i * 3 + 2] - minz) / ((maxz - minz) + FLT_MIN);
+
+		float err = std::sqrt(std::pow(x_norm, 2) + std::pow(y_norm, 2) + std::pow(y_norm, 2));
+
+		if (min_err > err) min_err = err;
+		if (max_err < err) max_err = err;
+
+		auto rgb = get_heat_map_rgb(err);
+
+		err_color[i * 3 + 0] = rgb[0];
+		err_color[i * 3 + 1] = rgb[1];
+		err_color[i * 3 + 2] = rgb[2];
+	}
+
+
+	std::cout
+		<< min_err << ' ' << max_err << std::endl;
 
 	const std::string out_error_filename = (dir / (prefix + ".poly_err")).string();
 	std::cout << "[Info] Saving output file: " << out_error_filename << std::endl;
 	vector_write(out_error_filename, error);
+
+	const std::string out_error_rgb_filename = (dir / (prefix + ".poly_rgb")).string();
+	std::cout << "[Info] Saving output file: " << out_error_rgb_filename << std::endl;
+	vector_write(out_error_rgb_filename, err_color);
 
     return EXIT_SUCCESS;
 }
