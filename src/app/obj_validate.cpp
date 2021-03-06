@@ -4,6 +4,19 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
+
+int vert_extract(tinyobj::scene_t& scene, int index)
+{
+	
+	std::cout
+		<< scene.attrib.vertices[index * 3 + 0] << ' '
+		<< scene.attrib.vertices[index * 3 + 1] << ' '
+		<< scene.attrib.vertices[index * 3 + 2] << '\n';
+
+	return EXIT_SUCCESS;
+}
+
+
 int main(int argc, char* argv[]) 
 { 
 	if (argc < 3)
