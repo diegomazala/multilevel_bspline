@@ -133,4 +133,26 @@ namespace poly
 		}
 		return sum_error;
 	}
+
+
+	template<typename T>
+	Eigen::Matrix<T, 3, 1> compute_error_xyz_diff(
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& x,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& yx,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& yy,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& yz,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& coeff_x,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& coeff_y,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& coeff_z)
+	{
+		Eigen::Matrix<T, 3, 1> sum_error(0, 0, 0);
+		for (auto i = 0; i < x.size(); ++i)
+		{
+			sum_error[0] += std::abs(poly::eval(coeff_x, x[i]) - (x[i] - x[0]) / (x[x.rows() - 1] - x[0]) * (yx[yx.rows() - 1] - yx[0]) + yx[0]);
+			sum_error[1] += std::abs(poly::eval(coeff_y, x[i]) - (x[i] - x[0]) / (x[x.rows() - 1] - x[0]) * (yy[yy.rows() - 1] - yy[0]) + yy[0]);
+			sum_error[2] += std::abs(poly::eval(coeff_z, x[i]) - (x[i] - x[0]) / (x[x.rows() - 1] - x[0]) * (yz[yz.rows() - 1] - yz[0]) + yz[0]);
+		}
+		return sum_error;
+	}
+
 }

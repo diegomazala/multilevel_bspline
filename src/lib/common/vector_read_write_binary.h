@@ -5,6 +5,8 @@
 #include <fstream>
 
 
+
+
 template<typename T>
 static void vector_write(std::ofstream& out_file, const std::vector<T>& data)
 {
@@ -18,6 +20,15 @@ static void vector_write(const std::string& out_filename, const std::vector<T>& 
 	std::ofstream out_file;
 	out_file.open(out_filename, std::ios::out | std::ios::binary);
 	vector_write(out_file, data);
+	out_file.close();
+}
+
+template<typename T>
+static void vector_write(const std::string& out_filename, const T* data, std::size_t count)
+{
+	std::ofstream out_file;
+	out_file.open(out_filename, std::ios::out | std::ios::binary);
+	out_file.write(reinterpret_cast<const char*>(data), count * sizeof(T));
 	out_file.close();
 }
 
