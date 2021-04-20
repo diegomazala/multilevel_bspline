@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 
 template<typename T> T normalize(T begin, T end, T value)
 {
-	return (value - begin) / (end - begin + FLT_MIN);
+	return (value - begin) / (end - begin);
 }
 
 
@@ -146,49 +146,48 @@ int main(int argc, char* argv[])
 
 	const int order = 3;
 
-	std::vector<Eigen::VectorXd> yx(n_verts, { Eigen::VectorXd(laplacian_levels) });
-	std::vector<Eigen::VectorXd> yy(n_verts, { Eigen::VectorXd(laplacian_levels) });
-	std::vector<Eigen::VectorXd> yz(n_verts, { Eigen::VectorXd(laplacian_levels) });
-	std::vector<Eigen::VectorXd> coeff_x(n_verts), coeff_y(n_verts), coeff_z(n_verts);
+	std::vector<Eigen::VectorXd> yx(vertex_array_size, { Eigen::VectorXd(laplacian_levels) });
+	std::vector<Eigen::VectorXd> yy(vertex_array_size, { Eigen::VectorXd(laplacian_levels) });
+	std::vector<Eigen::VectorXd> yz(vertex_array_size, { Eigen::VectorXd(laplacian_levels) });
+	std::vector<Eigen::VectorXd> coeff_x(vertex_array_size), coeff_y(vertex_array_size), coeff_z(vertex_array_size);
 	std::vector<Eigen::VectorXd> err(n_verts);
 	std::vector<Eigen::VectorXf> err_norm(n_verts);
 
 	std::cout << "[Info] Building matrices (copying vertices from files to data structures) ... ";
 	timer t;
 	t.start();
-	for (auto i = 0; i < n_verts; ++i)
+
+	for (auto i = 0; i < vertex_array_size; i += 3)
 	{
-		for (auto j = 0; j < laplacian_levels; ++j)
+		for (auto j = 0; j < vert_files.size(); ++j)
 		{
-			yx[i][j] = vert_files[j][i * 3 + 0];
-			yy[i][j] = vert_files[j][i * 3 + 1];
-			yz[i][j] = vert_files[j][i * 3 + 2];
+			yx[i][j] = vert_files[j][i + 0];
+			yy[i][j] = vert_files[j][i + 1];
+			yz[i][j] = vert_files[j][i + 2];
 		}
 	}
 	std::cout << t.diff_sec_now() << "s" << std::endl;
 
 
-
 	std::cout << "[Info] Computing polyfit ... ";
 	t.start();
-	for (auto i = 0; i < n_verts; ++i)
+
+	for (auto i = 0; i < vertex_array_size; i += 3)
 	{
-		coeff_x[i] = poly::fit(x, yx[i], order);
-		coeff_y[i] = poly::fit(x, yy[i], order);
-		coeff_z[i] = poly::fit(x, yz[i], order);
+		coeff_x[i] = poly::fit<double>(xn, yx[i], order);
+		coeff_y[i] = poly::fit<double>(xn, yy[i], order);
+		coeff_z[i] = poly::fit<double>(xn, yz[i], order);
 	}
 	std::cout << t.diff_sec_now() << "s" << std::endl;
 
 
 
-
-
+	
 	//
 	// Combining the coeff vector into a single vector
 	//
-	t.start();
 	std::vector<float> poly;
-	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : coeff_x)
+	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>& v : coeff_x)
 		for (const auto& vv : v)
 			poly.push_back(vv);
 	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : coeff_y)
@@ -197,13 +196,10 @@ int main(int argc, char* argv[])
 	for (const Eigen::Matrix<double, Eigen::Dynamic, 1>&v : coeff_z)
 		for (const auto& vv : v)
 			poly.push_back(vv);
-
+	
 	const std::string out_filename = (dir / (prefix + ".poly")).string();
-	std::cout << "[Info] Saving poly output file: " << out_filename << " ... ";
+	std::cout << "[Info] Saving output file: " << out_filename << std::endl;
 	vector_write(out_filename, poly);
-	std::cout << t.diff_sec_now() << "s" << std::endl;
-
-
 
 
 
@@ -212,12 +208,11 @@ int main(int argc, char* argv[])
 	t.start();
 	for (auto i = 0; i < n_verts; ++i)
 	{
-		#if USE_LERP_APPROXIMATION
-			err[i] = poly::compute_error_xyz_lerp(x, yx[i], yy[i], yz[i]);
-		#else
-			err[i] = poly::compute_error_xyz(x, yx[i], yy[i], yz[i], coeff_x[i], coeff_y[i], coeff_z[i]);
-		#endif
-		
+#if USE_LERP_APPROXIMATION
+		err[i] = poly::compute_error_xyz_lerp(x, yx[i], yy[i], yz[i]);
+#else
+		err[i] = poly::compute_error_xyz(x, yx[i], yy[i], yz[i], coeff_x[i], coeff_y[i], coeff_z[i]);
+#endif
 
 		if (minx > err[i].x()) minx = err[i].x();
 		if (miny > err[i].y()) miny = err[i].y();
@@ -228,8 +223,7 @@ int main(int argc, char* argv[])
 	}
 	std::cout << t.diff_sec_now() << "s" << std::endl;
 
-
-	std::cout << std::fixed << "[Info] Min/Max Errors: " << minx << ' ' << miny << ' ' << minz << " : "  << maxx << ' ' << maxy << ' ' << maxz << std::endl;
+	std::cout << std::fixed << "[Info] Min/Max Errors: " << minx << ' ' << miny << ' ' << minz << " : " << maxx << ' ' << maxy << ' ' << maxz << std::endl;
 
 	for (auto i = 0; i < n_verts; ++i)
 	{
@@ -238,7 +232,6 @@ int main(int argc, char* argv[])
 		err_norm[i][1] = normalize<float>(miny, maxy, err[i].y());
 		err_norm[i][2] = normalize<float>(minz, maxz, err[i].z());
 	}
-
 
 	std::cout << "[Info] Building error color map ... ";
 	t.start();
@@ -271,6 +264,7 @@ int main(int argc, char* argv[])
 	//std::cout << "[Info] Saving error file: " << out_error_filename << std::endl;
 	//vector_write(out_error_filename, err_norm.data()->data(), vertex_array_size);
 	//std::cout << t.diff_sec_now() << "s" << std::endl;
+
 
     return EXIT_SUCCESS;
 }
