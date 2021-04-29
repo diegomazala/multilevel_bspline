@@ -47,13 +47,23 @@ void test_from_file(const std::string& filename)
 	int interval = 0;
 	file >> count >> interval;
 
+	int mult = 1;
+
+	count /= mult;
+
 	Eigen::VectorXd x(count), yx(count), yy(count), yz(count);
+
+	float tmp;
 
 	for (auto i = 0; i < count; ++i)
 	{
-		x[i] = i * interval;
+		x[i] = i * interval * mult;
 		file >> yx[i] >> yy[i] >> yz[i];
+
+		for (auto j = 1; j < mult; ++j)
+			file >> tmp >> tmp >> tmp;
 	}
+
 
 
 	int order = 3;
@@ -68,6 +78,7 @@ void test_from_file(const std::string& filename)
 	std::cout << "Computing polyfit error..." << std::endl;
 	auto error = poly::compute_error_xyz(x, yx, yy, yz, coeff_x, coeff_y, coeff_z);
 	std::cout << "\nError xyz : " << error.transpose() << std::endl;
+	std::cout << "Error : " << poly::compute_error(x, yx, yy, yz, coeff_x, coeff_y, coeff_z) << std::endl;
 }
 
 
