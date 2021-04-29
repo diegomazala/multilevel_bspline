@@ -280,27 +280,44 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, std::vector<int> nIteration
                 mesh.set_point(*v_it, mesh.property(cogs, *v_it));
 
 #if 1
-        for (auto l : nIterations)
+        //for (auto l : nIterations)
         {
-            if (i == l)
+            auto l = i;
+            if (l % 20 == 0)
+            //if (   (i < 11) 
+            //    || (i < 101) && (i % 10 == 0)
+            //    || (i < 201) && (i % 20 == 0)
+            //    || (i < 501) && (i % 50 == 0)
+            //    || (i < 1001) && (i % 100 == 0)
+            //    || (i < 2001) && (i % 200 == 0)
+            //    || (i < 1001) && (i % 100 == 0)
+            //    || (i < 2001) && (i % 200 == 0)
+            //    || (i < 5001) && (i % 500 == 0)
+            //    || (i < 20001) && (i % 1000 == 0)
+            //)
+            //if (i == l)
             {
                 // add vertex normals
-                mesh.update_vertex_normals();
-                mesh.update_face_normals();
-                VertexNormal(mesh);
+                //mesh.update_vertex_normals();
+                //mesh.update_face_normals();
+                //VertexNormal(mesh);
 
-                OpenMesh::IO::Options mesh_out_opt(OpenMesh::IO::Options::VertexNormal);
-                mesh_out_opt += OpenMesh::IO::Options::VertexTexCoord;
+                OpenMesh::IO::Options mesh_out_opt;
+                //OpenMesh::IO::Options mesh_out_opt(OpenMesh::IO::Options::VertexNormal);
+                //mesh_out_opt += OpenMesh::IO::Options::VertexTexCoord;
 
-                if (OpenMesh::IO::write_mesh(mesh, filename_append_before_extension(g_filename_out, l), mesh_out_opt))
+                std::string number_str = std::to_string(l);
+                std::string append_str = std::string(5 - number_str.length(), '0') + number_str;
+
+                if (OpenMesh::IO::write_mesh(mesh, filename_append_before_extension(g_filename_out, append_str), mesh_out_opt))
                 {
                     std::cout << "Saved smoothed mesh: "
-                              << filename_append_before_extension(g_filename_out, l) << std::endl;
+                              << filename_append_before_extension(g_filename_out, append_str) << std::endl;
                 }
                 else
                 {
                     std::cout << "Error: Could not save "
-                              << filename_append_before_extension(g_filename_out, l) << std::endl;
+                              << filename_append_before_extension(g_filename_out, append_str) << std::endl;
                 }
             }
         }
@@ -308,26 +325,135 @@ void VertexSmooth(PolyMesh &mesh, unsigned int mode, std::vector<int> nIteration
     }
 }
 
+
+
+
+void VertexSmooth(PolyMesh& mesh, unsigned int mode, int N, int interval, bool fix_border = false)
+{
+	/////////////////////////////////////////////////////////
+	// mode 1 = Laplacian smoothing                        //
+	// mode 2 = Taubin smoothing                           //
+	// mode 3 = Laplacian smoothing with custom weight     //
+	// 0 < lamda < 1, -1 < mu < 0                          //
+	/////////////////////////////////////////////////////////
+
+	// smoothing mesh N times
+	PolyMesh::VertexIter v_it, v_end(mesh.vertices_end());
+	PolyMesh::VertexEdgeIter ve_it;
+	PolyMesh::VertexVertexIter vv_it;
+	PolyMesh::EdgeIter e_it, e_end(mesh.edges_end());
+	PolyMesh::Point cog, tmp, p0, p1;
+	PolyMesh::HalfedgeHandle h0, h1;
+	PolyMesh::Scalar valence, weight;
+	unsigned int i;
+	float lamda, mu;
+
+	if (mode == 1 || mode == 3)
+		lamda = 0.25;
+	if (mode == 2)
+	{
+		lamda = 0.5;
+		mu = -0.67;
+	}
+	for (i = 0; i <= N; ++i)
+	{
+		std::cout << "-- smoothing " << i << std::endl;
+		if (mode == 3) CotanWeight(mesh);
+
+		for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
+		{
+			if (fix_border && mesh.is_boundary(v_it))
+				continue;
+
+			cog[0] = cog[1] = cog[2] = valence = 0.0;
+
+			// iterate over all neighboring vertices
+			if (mode == 1 || mode == 2)
+			{
+				for (vv_it = mesh.vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+				{
+					cog += mesh.point(*vv_it);
+					++valence;
+				}
+				tmp = (cog / valence - mesh.point(*v_it)) * lamda + mesh.point(*v_it);
+				if (mode == 2)
+					tmp = (cog / valence - tmp) * mu + tmp;
+			}
+			else if (mode == 3)
+			{
+				for (ve_it = mesh.ve_iter(*v_it); ve_it.is_valid(); ++ve_it)
+				{
+					h0 = mesh.halfedge_handle(*ve_it, 0);
+					p0 = mesh.point(mesh.to_vertex_handle(h0));
+					h1 = mesh.halfedge_handle(*ve_it, 1);
+					p1 = mesh.point(mesh.to_vertex_handle(h1));
+					weight = mesh.property(eWeights, *ve_it);
+					if (p0 == mesh.point(*v_it))
+						cog += weight * (p1 - p0);
+					else
+						cog += weight * (p0 - p1);
+					valence += weight;
+				}
+				tmp = (cog / valence) * lamda + mesh.point(*v_it);
+			}
+			mesh.property(cogs, *v_it) = tmp;
+		}
+		for (v_it = mesh.vertices_begin(); v_it != v_end; ++v_it)
+			if (!(fix_border && mesh.is_boundary(*v_it)))
+				mesh.set_point(*v_it, mesh.property(cogs, *v_it));
+
+		{
+			auto l = i;
+			if (l % interval == 0)
+			{
+				OpenMesh::IO::Options mesh_out_opt;
+				std::string number_str = std::to_string(l);
+				std::string append_str = std::string(5 - number_str.length(), '0') + number_str;
+
+				if (OpenMesh::IO::write_mesh(mesh, filename_append_before_extension(g_filename_out, append_str), mesh_out_opt))
+				{
+					std::cout << "Saved smoothed mesh: "
+						<< filename_append_before_extension(g_filename_out, append_str) << std::endl;
+				}
+				else
+				{
+					std::cout << "Error: Could not save "
+						<< filename_append_before_extension(g_filename_out, append_str) << std::endl;
+				}
+			}
+		}
+	}
+}
+
+
 int main(int argc, char **argv)
 {
     PolyMesh mesh;
     
-    if (argc < 5)
+    if (argc < 6)
     {
         std::cerr << "Usage: \n\
                     <filename_in> \n\
                     <filename_out> \n\
                     smooth <mode={1 = laplacian, 2 = taubin, 3 = laplacian with custom weights> \n\
-                    <number of iterations, number of iterations, number of iterations, ...> \n";
+                    number of iterations \n\
+                    interval between interations to save \n\n\
+                    ex: smooth.exe in.obj out.obj 1 20000 20 \n";
         return EXIT_FAILURE;
     }
 
 	g_filename_in = argv[1];
 	g_filename_out = argv[2];
     int mode = atoi(argv[3]);
+#if 1
+    int N = atoi(argv[4]);
+    int interval = atoi(argv[5]);
+#else
     std::vector<int> nIterations;
     for (auto i = 4; i < argc; ++i)
         nIterations.push_back(atoi(argv[i]));
+   
+#endif
 
     OpenMesh::IO::Options mesh_in_opt(OpenMesh::IO::Options::VertexTexCoord);
 
@@ -357,12 +483,13 @@ int main(int argc, char **argv)
 
     // main function
     OriginalRank(mesh);
-    VertexSmooth(mesh, mode, nIterations);
+    //VertexSmooth(mesh, mode, nIterations);
+    VertexSmooth(mesh, mode, N, interval);
 
     // add vertex normals
-    mesh.update_vertex_normals();
-    mesh.update_face_normals();
-    VertexNormal(mesh);
+    //mesh.update_vertex_normals();
+    //mesh.update_face_normals();
+    //VertexNormal(mesh);
 
 #if 0 // The mesh is being save inside VertexNormal function
     OpenMesh::IO::Options mesh_out_opt(OpenMesh::IO::Options::VertexNormal);

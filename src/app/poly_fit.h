@@ -36,6 +36,15 @@ namespace poly
 		return result;
 	}
 
+	template<typename T>
+	Eigen::Matrix<T, Eigen::Dynamic, 1> eval_lerp(
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& a,
+		const Eigen::Matrix<T, Eigen::Dynamic, 1>& b,
+		const T t)
+	{
+		return a * (1.f - t) + b * t;
+	}
+
 
 	template<typename T>
 	T compute_error(

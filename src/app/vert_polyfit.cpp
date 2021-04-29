@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 
 template<typename T> T normalize(T begin, T end, T value)
 {
-	return (value - begin) / (end - begin);
+	return (value - begin) / (end - begin + FLT_MIN);
 }
 
 
@@ -86,8 +86,7 @@ int main(int argc, char* argv[])
 
 	const int laplacian_levels = files.size();
 
-	using vertvec_t = std::vector<float>;
-	std::vector<vertvec_t> vert_files(laplacian_levels);
+	std::vector<std::vector<float>> vert_files(laplacian_levels);
 
 
 	//
@@ -101,6 +100,7 @@ int main(int argc, char* argv[])
 			<< "Abort" << std::endl;
 		return EXIT_FAILURE;
 	}
+	
 
 	const auto vertex_array_size = vert_files[0].size();
 	const auto n_verts = vertex_array_size / 3;
@@ -127,15 +127,19 @@ int main(int argc, char* argv[])
 			return EXIT_FAILURE;
 		}
 	}
-
+	
 
 	Eigen::VectorXd x(laplacian_levels), xn(laplacian_levels);
-	x << 0, 50, 100, 250, 500, 1000, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000;
-	
-	for (auto j = 0; j < x.size(); ++j)
-	{
-		xn[j] = normalize(x[0], x[x.rows() - 1], x[j]);
-	}
+	//x << 0, 50, 100, 250, 500, 1000, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000;
+	// x << 0, 50, 500, 5000, 10000, 20000;
+
+	x << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		20, 30, 40, 50, 100,
+		250, 500, 1000, 2500, 5000, 7500, 
+		10000, 12500, 15000, 17500, 
+		19990, 19991, 19992, 19993, 19994,
+		19995, 19996, 19997, 19998, 19999,
+		20000;
 
 	if (x.size() != vert_files.size())
 	{
@@ -144,36 +148,45 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
+	
+	std::cout << "[Info] Normalizing x array ... " << std::endl;
+
+	for (auto j = 0; j < laplacian_levels; ++j)
+	{
+		xn[j] = normalize(x[0], x[x.rows() - 1], x[j]);
+	}
+	
+	
+
 	const int order = 3;
 
-	std::vector<Eigen::VectorXd> yx(vertex_array_size, { Eigen::VectorXd(laplacian_levels) });
-	std::vector<Eigen::VectorXd> yy(vertex_array_size, { Eigen::VectorXd(laplacian_levels) });
-	std::vector<Eigen::VectorXd> yz(vertex_array_size, { Eigen::VectorXd(laplacian_levels) });
-	std::vector<Eigen::VectorXd> coeff_x(vertex_array_size), coeff_y(vertex_array_size), coeff_z(vertex_array_size);
-	std::vector<Eigen::VectorXd> err(n_verts);
-	std::vector<Eigen::VectorXf> err_norm(n_verts);
+	std::vector<Eigen::VectorXd> yx(n_verts, { Eigen::VectorXd(laplacian_levels) });
+	std::vector<Eigen::VectorXd> yy(n_verts, { Eigen::VectorXd(laplacian_levels) });
+	std::vector<Eigen::VectorXd> yz(n_verts, { Eigen::VectorXd(laplacian_levels) });
+	std::vector<Eigen::VectorXd> coeff_x(n_verts), coeff_y(n_verts), coeff_z(n_verts);
 
 	std::cout << "[Info] Building matrices (copying vertices from files to data structures) ... ";
 	timer t;
 	t.start();
 
-	for (auto i = 0; i < vertex_array_size; i += 3)
+	for (auto i = 0; i < n_verts; i++)
 	{
-		for (auto j = 0; j < vert_files.size(); ++j)
+		for (auto j = 0; j < laplacian_levels; ++j)
 		{
-			yx[i][j] = vert_files[j][i + 0];
-			yy[i][j] = vert_files[j][i + 1];
-			yz[i][j] = vert_files[j][i + 2];
+			yx[i][j] = vert_files[j][i * 3 + 0];
+			yy[i][j] = vert_files[j][i * 3 + 1];
+			yz[i][j] = vert_files[j][i * 3 + 2];
 		}
 	}
 	std::cout << t.diff_sec_now() << "s" << std::endl;
 
 
-	std::cout << "[Info] Computing polyfit ... ";
+	std::cout << "[Info] Computing polyfit ... \n";
 	t.start();
 
-	for (auto i = 0; i < vertex_array_size; i += 3)
+	for (auto i = 0; i < n_verts; i++)
 	{
+		std::cout << '\r' << (float(i) / n_verts) * 100 << " % " << std::flush;
 		coeff_x[i] = poly::fit<double>(xn, yx[i], order);
 		coeff_y[i] = poly::fit<double>(xn, yy[i], order);
 		coeff_z[i] = poly::fit<double>(xn, yz[i], order);
@@ -181,8 +194,6 @@ int main(int argc, char* argv[])
 	std::cout << t.diff_sec_now() << "s" << std::endl;
 
 
-
-	
 	//
 	// Combining the coeff vector into a single vector
 	//
@@ -201,70 +212,46 @@ int main(int argc, char* argv[])
 	std::cout << "[Info] Saving output file: " << out_filename << std::endl;
 	vector_write(out_filename, poly);
 
+	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 3>> diff_l(n_verts, { Eigen::Matrix<double, Eigen::Dynamic, 3>(laplacian_levels, 3) });
+	std::vector<Eigen::Matrix<double, Eigen::Dynamic, 3>> diff_c(n_verts, { Eigen::Matrix<double, Eigen::Dynamic, 3>(laplacian_levels, 3) });
 
+	std::vector<Eigen::Vector3d> diff_l_avg(laplacian_levels, Eigen::Vector3d::Zero());
+	std::vector<Eigen::Vector3d> diff_c_avg(laplacian_levels, Eigen::Vector3d::Zero());
 
-	std::cout << "[Info] Computing error ... ";
-	float minx = FLT_MAX, miny = FLT_MAX, minz = FLT_MAX, maxx = FLT_MIN, maxy = FLT_MIN, maxz = FLT_MIN;
-	t.start();
-	for (auto i = 0; i < n_verts; ++i)
-	{
-#if USE_LERP_APPROXIMATION
-		err[i] = poly::compute_error_xyz_lerp(x, yx[i], yy[i], yz[i]);
-#else
-		err[i] = poly::compute_error_xyz(x, yx[i], yy[i], yz[i], coeff_x[i], coeff_y[i], coeff_z[i]);
-#endif
-
-		if (minx > err[i].x()) minx = err[i].x();
-		if (miny > err[i].y()) miny = err[i].y();
-		if (minz > err[i].z()) minz = err[i].z();
-		if (maxx < err[i].x()) maxx = err[i].x();
-		if (maxy < err[i].y()) maxy = err[i].y();
-		if (maxz < err[i].z()) maxz = err[i].z();
-	}
-	std::cout << t.diff_sec_now() << "s" << std::endl;
-
-	std::cout << std::fixed << "[Info] Min/Max Errors: " << minx << ' ' << miny << ' ' << minz << " : " << maxx << ' ' << maxy << ' ' << maxz << std::endl;
+	std::cout << "[Info] Computing difference between methods " << std::endl;
 
 	for (auto i = 0; i < n_verts; ++i)
 	{
-		err_norm[i] = err[i].cast<float>();
-		err_norm[i][0] = normalize<float>(minx, maxx, err[i].x());
-		err_norm[i][1] = normalize<float>(miny, maxy, err[i].y());
-		err_norm[i][2] = normalize<float>(minz, maxz, err[i].z());
-	}
+		std::cout << '\r' << (float(i) / n_verts) * 100  << " % " << std::flush;
+		auto l = laplacian_levels - 1;
+		auto a = Eigen::Vector3d(yx[i][0], yy[i][0], yz[i][0]);
+		auto b = Eigen::Vector3d(yx[i][l], yy[i][l], yz[i][l]);
 
-	std::cout << "[Info] Building error color map ... ";
-	t.start();
-	std::vector<float> err_color(vertex_array_size);
-	for (auto i = 0; i < n_verts; ++i)
+		for (auto j = 0; j < laplacian_levels; ++j)
+		{
+			auto e = poly::eval_lerp<double>(a, b, xn[j]);
+			diff_l[i](j, 0) = std::abs(e[0] - yx[i][j]);
+			diff_l[i](j, 1) = std::abs(e[1] - yy[i][j]);
+			diff_l[i](j, 2) = std::abs(e[2] - yz[i][j]);
+
+			diff_c[i](j, 0) = std::abs(poly::eval(coeff_x[i], xn[j]) - yx[i][j]);
+			diff_c[i](j, 1) = std::abs(poly::eval(coeff_y[i], xn[j]) - yy[i][j]);
+			diff_c[i](j, 2) = std::abs(poly::eval(coeff_z[i], xn[j]) - yz[i][j]);
+
+			diff_l_avg[j] += diff_l[i].row(j);
+			diff_c_avg[j] += diff_c[i].row(j);
+		}
+	}
+	std::cout << std::endl;
+
+	std::cout << "[Info] Average Error: " << std::endl;
+	for (auto j = 0; j < laplacian_levels; ++j)
 	{
-		auto rgb = get_heat_map_rgb(err_norm[i].norm());
-		//auto rgb = err_norm[i];
+		diff_l_avg[j] = diff_l_avg[j] / laplacian_levels;
+		diff_c_avg[j] = diff_c_avg[j] / laplacian_levels;
 
-		err_color[i * 3 + 0] = rgb[0];
-		err_color[i * 3 + 1] = rgb[1];
-		err_color[i * 3 + 2] = rgb[2];
+		std::cout << std::fixed << std::setw(6) << j << " : " << xn[j]  << " : "<< x[j] << " :  (l) " << diff_l_avg[j].transpose() << "  :  (c)" << diff_c_avg[j].transpose() << std::endl;
 	}
-	std::cout << t.diff_sec_now() << "s" << std::endl;
-
-
-#if USE_LERP_APPROXIMATION
-	const std::string out_error_rgb_filename = (dir / (prefix + ".lerp_rgb")).string();
-#else
-	const std::string out_error_rgb_filename = (dir / (prefix + ".poly_rgb")).string();
-#endif
-	//const std::string out_error_rgb_filename = "E:/Projects/MDP/faceblending/samples/models/Fig05.lerp_rgb";
-	std::cout << "[Info] Saving error color file: " << out_error_rgb_filename << " ... ";
-	t.start();
-	vector_write(out_error_rgb_filename, err_color);
-	std::cout << t.diff_sec_now() << "s" << std::endl;
-
-	////const std::string out_error_filename = (dir / (prefix + ".poly_err")).string();
-	//const std::string out_error_filename = "E:/Projects/MDP/faceblending/samples/models/Fig02.poly_err";
-	//std::cout << "[Info] Saving error file: " << out_error_filename << std::endl;
-	//vector_write(out_error_filename, err_norm.data()->data(), vertex_array_size);
-	//std::cout << t.diff_sec_now() << "s" << std::endl;
-
 
     return EXIT_SUCCESS;
 }
