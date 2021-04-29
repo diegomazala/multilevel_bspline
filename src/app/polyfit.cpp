@@ -1,6 +1,7 @@
 #include "poly_fit.h"
 #include <vector>
 #include <iomanip>
+#include <fstream>
 #include "timer.h"
 
 #define LEVELS 14
@@ -31,6 +32,43 @@ void compute_error_lerp()
 	}
 }
 
+
+void test_from_file(const std::string& filename)
+{
+	std::ifstream file(filename);
+
+	if (!file.is_open())
+	{
+		std::cout << "Error: Could not open file: " << filename << std::endl;
+		return;
+	}
+
+	int count = 0;
+	int interval = 0;
+	file >> count >> interval;
+
+	Eigen::VectorXd x(count), yx(count), yy(count), yz(count);
+
+	for (auto i = 0; i < count; ++i)
+	{
+		x[i] = i * interval;
+		file >> yx[i] >> yy[i] >> yz[i];
+	}
+
+
+	int order = 3;
+
+	std::cout << "Computing polyfit x..." << std::endl;
+	auto coeff_x = poly::fit(x, yx, order);
+	std::cout << "Computing polyfit y..." << std::endl;
+	auto coeff_y = poly::fit(x, yy, order);
+	std::cout << "Computing polyfit z..." << std::endl;
+	auto coeff_z = poly::fit(x, yz, order);
+
+	std::cout << "Computing polyfit error..." << std::endl;
+	auto error = poly::compute_error_xyz(x, yx, yy, yz, coeff_x, coeff_y, coeff_z);
+	std::cout << "\nError xyz : " << error.transpose() << std::endl;
+}
 
 
 void test_verts_red(int order)
@@ -134,7 +172,9 @@ int main()
 	//compute_error_lerp();
 	//test_verts_red(1);
 	//test_verts_yellow(3);
-	test_verts_mult(3);
+	//test_verts_mult(3);
+
+	test_from_file("E:/Projects/MDP/multilevel_bspline/build_msvc_2019_x64/bin/Release/obj_vertex_extrac.log");
 
     return 0;
 }
