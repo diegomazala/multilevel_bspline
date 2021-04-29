@@ -220,6 +220,17 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} tinyobj)
 
 
+###########################################################################
+#
+# obj_vertex_extract
+#
+project(obj_vertex_extract)
+add_executable(${PROJECT_NAME} obj_vertex_extract.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+#target_include_directories (${PROJECT_NAME} PRIVATE ${TINY_OBJ_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} tinyobj)
+
+
 
 ###########################################################################
 #
