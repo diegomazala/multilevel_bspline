@@ -8,6 +8,12 @@ namespace fs = std::filesystem;
 #define _USE_MATH_DEFINES
 #include <cmath>
 
+template<typename T>
+std::string to_string_left_padded(T v, int left_count, char left_char = '0')
+{
+	const std::string number_str = std::to_string(v);
+	return std::string(left_count - number_str.length(), left_char) + number_str;
+}
 
 bool vert_extract(tinyobj::scene_t& scene, int index)
 {
@@ -31,12 +37,123 @@ bool vert_extract(tinyobj::scene_t& scene, int index)
 }
 
 
+
+void vert_extract_to_file(const std::vector<std::string>& files, const std::string& output_dir, std::size_t vert_begin, std::size_t vert_end)
+{
+	const std::size_t batch_size = 16;
+	auto n_verts = vert_end - vert_begin;
+
+	std::vector<std::ofstream> out_files(n_verts);
+	{
+		for (auto i = 0; i < n_verts; ++i)
+		{
+			std::string fname = output_dir + "/v" + to_string_left_padded(i + vert_begin, 6, '0') + ".txt";
+			try
+			{
+				out_files[i] = std::ofstream(fname, std::ios::out);
+			}
+			catch (const std::exception& ex)
+			{
+				std::cout << ex.what() << std::endl;
+			}
+
+			if (!out_files[i].is_open())
+			{
+				std::cout << "\n[Error] Could not open file to write: " << fname << std::endl;
+			}
+			else
+			{
+				std::cout << "\r[Info] File open: " << float(i * (n_verts - 1)) / ((n_verts - 1) * (n_verts - 1)) * 100 << " %";
+			}
+		}
+	}
+
+	std::cout << std::endl;
+
+	std::size_t f = 0;
+	while (f < files.size())
+	{
+		std::cout << "--------------------------------------- Loading " << f << std::endl;
+		std::vector<tinyobj::scene_t> scenes(batch_size);
+		std::vector<bool> success_load(batch_size);
+
+
+		auto cur_batch_size = 0;
+		for (auto b = 0; b < batch_size; ++b)
+		{
+			std::cout << f << " : " << b << " :  Loading: " << files[f] << std::endl;
+
+			success_load[b] = tinyobj::load(scenes[b], files[f]);
+			if (!success_load[b])
+			{
+				std::cout << "[Error] Could not load " << files[f] << std::endl;
+				break;
+			}
+
+			cur_batch_size = b + 1;
+
+			if (++f == files.size())
+				break;
+		}
+
+		std::cout << "[Info] Writing batch to files" << std::endl;
+
+		for (auto i = 0; i < n_verts; ++i)
+		{
+			for (auto b = 0; b < cur_batch_size; ++b)
+			{
+				out_files[i] << std::fixed
+					<< scenes[b].attrib.vertices[i * 3 + vert_begin + 0] << ' '
+					<< scenes[b].attrib.vertices[i * 3 + vert_begin + 1] << ' '
+					<< scenes[b].attrib.vertices[i * 3 + vert_begin + 2] << std::endl;
+			}
+		}
+
+
+		scenes.clear();
+		success_load.clear();
+	}
+
+	std::cout << "=========================== All Scenes loaded" << std::endl;
+
+	for (auto i = 0; i < n_verts; ++i)
+		out_files[i].close();
+}
+
+
+
+
+
+void vert_extract_to_file(const std::vector<std::string>& files, const std::string& output_dir)
+{
+	std::size_t n_verts = 0;
+	{
+		tinyobj::scene_t scene;
+		if (tinyobj::load(scene, files[0]))
+			n_verts = scene.attrib.vertices.size() / 3;
+	}
+
+	const std::size_t vertex_batch_size = 256;
+	std::size_t last_vertex_batch = 0;
+	while (last_vertex_batch < n_verts)
+	{
+		std::cout << "last_vertex_batch " << last_vertex_batch << std::endl;
+		vert_extract_to_file(files, output_dir, last_vertex_batch, min(last_vertex_batch + vertex_batch_size, n_verts));
+
+		last_vertex_batch += vertex_batch_size;
+	}
+
+}
+
+
+
 int main(int argc, char* argv[]) 
 { 
 	if (argc < 3)
 	{
         std::cerr << "Usage: app <filename_in> <index, index, index, ...>\n"
-		<< "Usage: app <directory> <prefix> <index, index, index, ...>\n";
+		<< "Usage: app <directory> <prefix> <index, index, index, ...>\n"
+		<< "Usage: app <directory> <prefix> <output_dir>\n";
         return EXIT_FAILURE;
 	}
 
@@ -67,16 +184,23 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	std::sort(files.begin(), files.end());
 
+	std::sort(files.begin(), files.end());
 	std::cout << "Number of files: " << files.size() << std::endl;
+
+#if 1
+
+	vert_extract_to_file(files, fs::path(argv[3]).string());
+	//vert_extract_to_file({ files.begin(), files.begin() + 260 }, fs::path(argv[3]).string());
+
+#else
+
+	std::vector<int> indices;
+	for (auto i = argc_start_index; i < argc; ++i)
+		indices.push_back(atoi(argv[i]));
 
 	for (const auto& f : files)
 	{
-		std::vector<int> indices;
-		for (auto i = argc_start_index; i < argc; ++i)
-			indices.push_back(atoi(argv[i]));
-
 		//std::cout << "[Info] Loading obj file " << f << std::endl;
 
 		tinyobj::scene_t scene;
@@ -93,6 +217,8 @@ int main(int argc, char* argv[])
 			vert_extract(scene, i);
 		}
 	}
+
+#endif
 
 
 	return EXIT_SUCCESS;
