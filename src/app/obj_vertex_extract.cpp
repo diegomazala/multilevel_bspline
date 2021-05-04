@@ -40,7 +40,7 @@ bool vert_extract(tinyobj::scene_t& scene, int index)
 
 void vert_extract_to_file(const std::vector<std::string>& files, const std::string& output_dir, std::size_t vert_begin, std::size_t vert_end)
 {
-	const std::size_t batch_size = 16;
+	const std::size_t batch_size = 256;
 	auto n_verts = vert_end - vert_begin;
 
 	std::vector<std::ofstream> out_files(n_verts);
@@ -81,7 +81,7 @@ void vert_extract_to_file(const std::vector<std::string>& files, const std::stri
 		auto cur_batch_size = 0;
 		for (auto b = 0; b < batch_size; ++b)
 		{
-			std::cout << f << " : " << b << " :  Loading: " << files[f] << std::endl;
+			std::cout << '[' << vert_begin << " - " << vert_end << "]  " << f << " : " << b << " :  Loading: " << files[f] << std::endl;
 
 			success_load[b] = tinyobj::load(scenes[b], files[f]);
 			if (!success_load[b])
@@ -103,9 +103,9 @@ void vert_extract_to_file(const std::vector<std::string>& files, const std::stri
 			for (auto b = 0; b < cur_batch_size; ++b)
 			{
 				out_files[i] << std::fixed
-					<< scenes[b].attrib.vertices[i * 3 + vert_begin + 0] << ' '
-					<< scenes[b].attrib.vertices[i * 3 + vert_begin + 1] << ' '
-					<< scenes[b].attrib.vertices[i * 3 + vert_begin + 2] << std::endl;
+					<< scenes[b].attrib.vertices[(i + vert_begin) * 3 + 0] << ' '
+					<< scenes[b].attrib.vertices[(i + vert_begin) * 3 + 1] << ' '
+					<< scenes[b].attrib.vertices[(i + vert_begin) * 3 + 2] << std::endl;
 			}
 		}
 
@@ -113,8 +113,6 @@ void vert_extract_to_file(const std::vector<std::string>& files, const std::stri
 		scenes.clear();
 		success_load.clear();
 	}
-
-	std::cout << "=========================== All Scenes loaded" << std::endl;
 
 	for (auto i = 0; i < n_verts; ++i)
 		out_files[i].close();
@@ -137,7 +135,7 @@ void vert_extract_to_file(const std::vector<std::string>& files, const std::stri
 	std::size_t last_vertex_batch = 0;
 	while (last_vertex_batch < n_verts)
 	{
-		std::cout << "last_vertex_batch " << last_vertex_batch << std::endl;
+		std::cout << "\n========================================== Vertex_batch : " << last_vertex_batch << std::endl;
 		vert_extract_to_file(files, output_dir, last_vertex_batch, min(last_vertex_batch + vertex_batch_size, n_verts));
 
 		last_vertex_batch += vertex_batch_size;
@@ -191,7 +189,7 @@ int main(int argc, char* argv[])
 #if 1
 
 	vert_extract_to_file(files, fs::path(argv[3]).string());
-	//vert_extract_to_file({ files.begin(), files.begin() + 260 }, fs::path(argv[3]).string());
+	//vert_extract_to_file({ files.begin(), files.begin() + 40 }, fs::path(argv[3]).string());
 
 #else
 
