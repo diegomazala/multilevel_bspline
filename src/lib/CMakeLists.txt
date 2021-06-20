@@ -120,3 +120,17 @@ target_include_directories(${LIB_NAME} INTERFACE ${TINY_PLY_INCLUDE_DIR})
 target_sources(${LIB_NAME} INTERFACE 
     ${TINY_PLY_INCLUDE_DIR}/tinyply.h
     ${TINY_PLY_INCLUDE_DIR}/tinyply.cpp)
+
+
+
+###########################################################################
+#
+# yaml lib
+#
+set(YAML_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml)
+set(LIB_NAME yaml)
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE ${YAML_INCLUDE_DIR})
+target_sources(${LIB_NAME} INTERFACE 
+    ${YAML_INCLUDE_DIR}/Yaml.hpp
+    ${YAML_INCLUDE_DIR}/Yaml.cpp)    

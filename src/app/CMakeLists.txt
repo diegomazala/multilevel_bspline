@@ -340,3 +340,13 @@ project(vert_polyfit)
 add_executable(${PROJECT_NAME} vert_polyfit.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} Eigen3::Eigen common)
+
+
+###########################################################################
+#
+# face_blending
+#
+project(face_blending)
+add_executable(${PROJECT_NAME} face_blending.cpp face_blending_project.h)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} tinyobj Eigen3::Eigen common yaml)
