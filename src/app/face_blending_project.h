@@ -87,6 +87,31 @@ public:
 		return thumbnails;
 	}
 
+	std::vector<float> getThumbnailsPos()
+	{
+		std::vector<float> thumbnailsPos;
+		try
+		{
+			Yaml::Node& thumbs = root["thumbnails"];
+			if (thumbs.IsSequence() == false)
+			{
+				throw Yaml::InternalException("thumbnails is not of type sequence.");
+			}
+
+			for (auto itS = thumbs.Begin(); itS != thumbs.End(); itS++)
+			{
+				Yaml::Node& entry = (*itS).second;
+				thumbnailsPos.push_back(entry["pos_x"].As<float>(0));
+				thumbnailsPos.push_back(entry["pos_y"].As<float>(0));
+			}
+		}
+		catch (const Yaml::Exception e)
+		{
+			std::cout << "Exception " << e.Type() << ": " << e.what() << std::endl;
+		}
+		return thumbnailsPos;
+	}
+
 	std::vector<std::string> getOriginalMeshesFilename()
 	{
 		std::vector<std::string> filenames;
